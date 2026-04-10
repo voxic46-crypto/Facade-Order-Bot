@@ -3,20 +3,33 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Facade order bot API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: regions
+    description: Region management
+  - name: manufacturers
+    description: Manufacturer management
+  - name: collections
+    description: Collection management
+  - name: decors
+    description: Decor management
+  - name: prices
+    description: Price management
+  - name: orders
+    description: Order management
+  - name: catalog
+    description: Catalog import
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +37,397 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /regions:
+    get:
+      operationId: listRegions
+      tags: [regions]
+      summary: List all regions
+      responses:
+        "200":
+          description: List of regions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Region"
+    post:
+      operationId: createRegion
+      tags: [regions]
+      summary: Create region
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateRegionBody"
+      responses:
+        "201":
+          description: Created region
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Region"
+
+  /regions/{id}:
+    patch:
+      operationId: updateRegion
+      tags: [regions]
+      summary: Update region
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateRegionBody"
+      responses:
+        "200":
+          description: Updated region
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Region"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteRegion
+      tags: [regions]
+      summary: Delete region
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /manufacturers:
+    get:
+      operationId: listManufacturers
+      tags: [manufacturers]
+      summary: List all manufacturers
+      responses:
+        "200":
+          description: List of manufacturers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Manufacturer"
+    post:
+      operationId: createManufacturer
+      tags: [manufacturers]
+      summary: Create manufacturer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateManufacturerBody"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Manufacturer"
+
+  /manufacturers/{id}:
+    delete:
+      operationId: deleteManufacturer
+      tags: [manufacturers]
+      summary: Delete manufacturer
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /collections:
+    get:
+      operationId: listCollections
+      tags: [collections]
+      summary: List collections, optionally filtered by manufacturer
+      parameters:
+        - name: manufacturerId
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of collections
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Collection"
+
+  /decors:
+    get:
+      operationId: listDecors
+      tags: [decors]
+      summary: List decors, optionally filtered by collection
+      parameters:
+        - name: collectionId
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of decors
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Decor"
+
+  /prices:
+    get:
+      operationId: listPrices
+      tags: [prices]
+      summary: List prices, optionally filtered by region and/or decor
+      parameters:
+        - name: regionId
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: decorId
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of prices
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Price"
+    post:
+      operationId: createPrice
+      tags: [prices]
+      summary: Create or update price
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePriceBody"
+      responses:
+        "201":
+          description: Created price
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Price"
+
+  /prices/{id}:
+    patch:
+      operationId: updatePrice
+      tags: [prices]
+      summary: Update price
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdatePriceBody"
+      responses:
+        "200":
+          description: Updated price
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Price"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deletePrice
+      tags: [prices]
+      summary: Delete price
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /orders:
+    get:
+      operationId: listOrders
+      tags: [orders]
+      summary: List orders
+      parameters:
+        - name: regionId
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of orders
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OrderSummary"
+    post:
+      operationId: createOrder
+      tags: [orders]
+      summary: Create a new order with items
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateOrderBody"
+      responses:
+        "201":
+          description: Created order
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrderDetail"
+
+  /orders/{id}:
+    get:
+      operationId: getOrder
+      tags: [orders]
+      summary: Get order with items
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Order detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrderDetail"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /catalog/import:
+    post:
+      operationId: importCatalog
+      tags: [catalog]
+      summary: Import catalog from Excel/CSV
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                regionId:
+                  type: integer
+              required:
+                - file
+      responses:
+        "200":
+          description: Import result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImportResult"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /bot/webhook:
+    post:
+      operationId: botWebhook
+      tags: [orders]
+      summary: MAX messenger bot webhook
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +438,367 @@ components:
       required:
         - status
 
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    Region:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        managerEmail:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - managerEmail
+        - createdAt
+        - updatedAt
+
+    CreateRegionBody:
+      type: object
+      properties:
+        name:
+          type: string
+        managerEmail:
+          type: string
+      required:
+        - name
+        - managerEmail
+
+    UpdateRegionBody:
+      type: object
+      properties:
+        name:
+          type: string
+        managerEmail:
+          type: string
+
+    Manufacturer:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - createdAt
+        - updatedAt
+
+    CreateManufacturerBody:
+      type: object
+      properties:
+        name:
+          type: string
+      required:
+        - name
+
+    Collection:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        manufacturerId:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - manufacturerId
+        - createdAt
+        - updatedAt
+
+    Decor:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        collectionId:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - collectionId
+        - createdAt
+        - updatedAt
+
+    Price:
+      type: object
+      properties:
+        id:
+          type: integer
+        regionId:
+          type: integer
+        decorId:
+          type: integer
+        pricePerSqm:
+          type: string
+        pricePerHole:
+          type: string
+        pricePackagingPerSqm:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - regionId
+        - decorId
+        - pricePerSqm
+        - pricePerHole
+        - pricePackagingPerSqm
+        - createdAt
+        - updatedAt
+
+    CreatePriceBody:
+      type: object
+      properties:
+        regionId:
+          type: integer
+        decorId:
+          type: integer
+        pricePerSqm:
+          type: string
+        pricePerHole:
+          type: string
+        pricePackagingPerSqm:
+          type: string
+      required:
+        - regionId
+        - decorId
+        - pricePerSqm
+        - pricePerHole
+        - pricePackagingPerSqm
+
+    UpdatePriceBody:
+      type: object
+      properties:
+        pricePerSqm:
+          type: string
+        pricePerHole:
+          type: string
+        pricePackagingPerSqm:
+          type: string
+
+    OrderItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        orderId:
+          type: integer
+        rowNumber:
+          type: integer
+        height:
+          type: string
+        width:
+          type: string
+        quantity:
+          type: integer
+        holes:
+          type: integer
+        area:
+          type: string
+        facadesCost:
+          type: string
+        holesCost:
+          type: string
+        packagingCost:
+          type: string
+      required:
+        - id
+        - orderId
+        - rowNumber
+        - height
+        - width
+        - quantity
+        - holes
+        - area
+        - facadesCost
+        - holesCost
+        - packagingCost
+
+    OrderItemInput:
+      type: object
+      properties:
+        rowNumber:
+          type: integer
+        height:
+          type: number
+        width:
+          type: number
+        quantity:
+          type: integer
+        holes:
+          type: integer
+      required:
+        - rowNumber
+        - height
+        - width
+        - quantity
+        - holes
+
+    OrderSummary:
+      type: object
+      properties:
+        id:
+          type: integer
+        regionId:
+          type: integer
+        decorId:
+          type: integer
+        customerName:
+          type: string
+        customerContact:
+          type: string
+        totalArea:
+          type: string
+        totalCost:
+          type: string
+        status:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - regionId
+        - decorId
+        - customerName
+        - customerContact
+        - totalArea
+        - totalCost
+        - status
+        - createdAt
+
+    OrderDetail:
+      type: object
+      properties:
+        id:
+          type: integer
+        regionId:
+          type: integer
+        decorId:
+          type: integer
+        customerName:
+          type: string
+        customerContact:
+          type: string
+        totalArea:
+          type: string
+        totalFacadesCost:
+          type: string
+        totalHolesCost:
+          type: string
+        totalPackagingCost:
+          type: string
+        totalCost:
+          type: string
+        attachedFileUrl:
+          type: ["string", "null"]
+        status:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrderItem"
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - regionId
+        - decorId
+        - customerName
+        - customerContact
+        - totalArea
+        - totalFacadesCost
+        - totalHolesCost
+        - totalPackagingCost
+        - totalCost
+        - attachedFileUrl
+        - status
+        - items
+        - createdAt
+
+    CreateOrderBody:
+      type: object
+      properties:
+        regionId:
+          type: integer
+        decorId:
+          type: integer
+        customerName:
+          type: string
+        customerContact:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrderItemInput"
+        attachedFileUrl:
+          type: string
+      required:
+        - regionId
+        - decorId
+        - customerName
+        - customerContact
+        - items
+
+    ImportResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        imported:
+          type: integer
+        errors:
+          type: array
+          items:
+            type: string
+      required:
+        - success
+        - message
+        - imported
+        - errors
