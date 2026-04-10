@@ -5,11 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Trash2, Edit2, Plus, Loader2 } from "lucide-react";
+import { Trash2, Loader2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { 
+import {
   useListManufacturers, getListManufacturersQueryKey, useCreateManufacturer, useDeleteManufacturer,
   useListCollections, getListCollectionsQueryKey,
   useListDecors, getListDecorsQueryKey
@@ -19,15 +18,15 @@ export default function Catalog() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Catalog</h1>
-        <p className="text-muted-foreground mt-1">Manage manufacturers, collections, and decors.</p>
+        <h1 className="text-3xl font-bold tracking-tight">Каталог</h1>
+        <p className="text-muted-foreground mt-1">Управление производителями, коллекциями и декорами.</p>
       </div>
 
       <Tabs defaultValue="manufacturers">
         <TabsList className="w-full max-w-md grid grid-cols-3">
-          <TabsTrigger value="manufacturers">Manufacturers</TabsTrigger>
-          <TabsTrigger value="collections">Collections</TabsTrigger>
-          <TabsTrigger value="decors">Decors</TabsTrigger>
+          <TabsTrigger value="manufacturers">Производители</TabsTrigger>
+          <TabsTrigger value="collections">Коллекции</TabsTrigger>
+          <TabsTrigger value="decors">Декоры</TabsTrigger>
         </TabsList>
         <div className="mt-6">
           <TabsContent value="manufacturers" className="m-0">
@@ -59,17 +58,17 @@ function ManufacturersTab() {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: getListManufacturersQueryKey() });
         setNewName("");
-        toast({ title: "Manufacturer added" });
+        toast({ title: "Производитель добавлен" });
       }
     });
   };
 
   const handleDelete = (id: number) => {
-    if (confirm("Delete this manufacturer? It might cascade delete collections.")) {
+    if (confirm("Удалить этого производителя? Связанные коллекции также могут быть удалены.")) {
       deleteManufacturer.mutate({ id }, {
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: getListManufacturersQueryKey() });
-          toast({ title: "Manufacturer deleted" });
+          toast({ title: "Производитель удалён" });
         }
       });
     }
@@ -78,16 +77,16 @@ function ManufacturersTab() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Manufacturers</CardTitle>
-        <CardDescription>Add or remove manufacturers.</CardDescription>
+        <CardTitle>Производители</CardTitle>
+        <CardDescription>Добавляйте и удаляйте производителей фасадов.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex gap-2 items-end max-w-sm">
           <div className="flex-1 space-y-2">
-            <Label>New Manufacturer</Label>
-            <Input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="e.g. Egger" />
+            <Label>Новый производитель</Label>
+            <Input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="например, Egger" />
           </div>
-          <Button onClick={handleAdd} disabled={!newName || createManufacturer.isPending}>Add</Button>
+          <Button onClick={handleAdd} disabled={!newName || createManufacturer.isPending}>Добавить</Button>
         </div>
 
         <div className="border rounded-md mt-6">
@@ -95,13 +94,13 @@ function ManufacturersTab() {
             <TableHeader>
               <TableRow>
                 <TableHead>ID</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead>Название</TableHead>
+                <TableHead className="text-right">Действия</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={3} className="text-center py-4">Loading...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={3} className="text-center py-4">Загрузка...</TableCell></TableRow>
               ) : data?.map((item) => (
                 <TableRow key={item.id}>
                   <TableCell>{item.id}</TableCell>
@@ -113,6 +112,9 @@ function ManufacturersTab() {
                   </TableCell>
                 </TableRow>
               ))}
+              {!isLoading && data?.length === 0 && (
+                <TableRow><TableCell colSpan={3} className="text-center py-4 text-muted-foreground">Производители не найдены</TableCell></TableRow>
+              )}
             </TableBody>
           </Table>
         </div>
@@ -121,18 +123,17 @@ function ManufacturersTab() {
   );
 }
 
-// For brevity in this exercise, Collections and Decors tabs only show lists without the add/delete forms (since the hooks were omitted from prompt, I'll just show them read-only for now, but wait, the prompt says "delete button, form to add new entry", but didn't provide useCreateCollection or useCreateDecor. I'll mock the UI and comment the API).
 function CollectionsTab() {
   const { data, isLoading } = useListCollections();
   const { data: manufacturers } = useListManufacturers();
 
-  const getManufacturerName = (id: number) => manufacturers?.find(m => m.id === id)?.name || "Unknown";
+  const getManufacturerName = (id: number) => manufacturers?.find(m => m.id === id)?.name || "Неизвестно";
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Collections</CardTitle>
-        <CardDescription>View collections. Imports usually manage this.</CardDescription>
+        <CardTitle>Коллекции</CardTitle>
+        <CardDescription>Коллекции создаются автоматически при импорте каталога.</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="border rounded-md">
@@ -140,13 +141,13 @@ function CollectionsTab() {
             <TableHeader>
               <TableRow>
                 <TableHead>ID</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Manufacturer</TableHead>
+                <TableHead>Название</TableHead>
+                <TableHead>Производитель</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={3} className="text-center py-4">Loading...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={3} className="text-center py-4">Загрузка...</TableCell></TableRow>
               ) : data?.map((item) => (
                 <TableRow key={item.id}>
                   <TableCell>{item.id}</TableCell>
@@ -154,6 +155,9 @@ function CollectionsTab() {
                   <TableCell>{getManufacturerName(item.manufacturerId)}</TableCell>
                 </TableRow>
               ))}
+              {!isLoading && data?.length === 0 && (
+                <TableRow><TableCell colSpan={3} className="text-center py-4 text-muted-foreground">Коллекции не найдены. Загрузите каталог через раздел "Импорт".</TableCell></TableRow>
+              )}
             </TableBody>
           </Table>
         </div>
@@ -166,13 +170,13 @@ function DecorsTab() {
   const { data, isLoading } = useListDecors();
   const { data: collections } = useListCollections();
 
-  const getCollectionName = (id: number) => collections?.find(c => c.id === id)?.name || "Unknown";
+  const getCollectionName = (id: number) => collections?.find(c => c.id === id)?.name || "Неизвестно";
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Decors</CardTitle>
-        <CardDescription>View decors. Imports usually manage this.</CardDescription>
+        <CardTitle>Декоры</CardTitle>
+        <CardDescription>Декоры создаются автоматически при импорте каталога.</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="border rounded-md">
@@ -180,13 +184,13 @@ function DecorsTab() {
             <TableHeader>
               <TableRow>
                 <TableHead>ID</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Collection</TableHead>
+                <TableHead>Название</TableHead>
+                <TableHead>Коллекция</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={3} className="text-center py-4">Loading...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={3} className="text-center py-4">Загрузка...</TableCell></TableRow>
               ) : data?.map((item) => (
                 <TableRow key={item.id}>
                   <TableCell>{item.id}</TableCell>
@@ -194,6 +198,9 @@ function DecorsTab() {
                   <TableCell>{getCollectionName(item.collectionId)}</TableCell>
                 </TableRow>
               ))}
+              {!isLoading && data?.length === 0 && (
+                <TableRow><TableCell colSpan={3} className="text-center py-4 text-muted-foreground">Декоры не найдены. Загрузите каталог через раздел "Импорт".</TableCell></TableRow>
+              )}
             </TableBody>
           </Table>
         </div>

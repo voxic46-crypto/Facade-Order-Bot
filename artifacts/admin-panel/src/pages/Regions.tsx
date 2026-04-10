@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useListRegions, useCreateRegion, useUpdateRegion, useDeleteRegion, getListRegionsQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,7 +36,7 @@ export default function Regions() {
     const onSuccess = () => {
       queryClient.invalidateQueries({ queryKey: getListRegionsQueryKey() });
       setIsDialogOpen(false);
-      toast({ title: "Success", description: "Region saved successfully." });
+      toast({ title: "Готово", description: "Регион успешно сохранён." });
     };
 
     if (editingRegion.id) {
@@ -47,11 +47,11 @@ export default function Regions() {
   };
 
   const handleDelete = (id: number) => {
-    if (confirm("Are you sure you want to delete this region?")) {
+    if (confirm("Вы уверены, что хотите удалить этот регион?")) {
       deleteRegion.mutate({ id }, {
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: getListRegionsQueryKey() });
-          toast({ title: "Success", description: "Region deleted." });
+          toast({ title: "Готово", description: "Регион удалён." });
         }
       });
     }
@@ -61,11 +61,11 @@ export default function Regions() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Regions</h1>
-          <p className="text-muted-foreground mt-1">Manage operational regions and their managers.</p>
+          <h1 className="text-3xl font-bold tracking-tight">Регионы</h1>
+          <p className="text-muted-foreground mt-1">Управление регионами и почтами менеджеров.</p>
         </div>
         <Button onClick={() => handleOpenDialog()} className="gap-2">
-          <Plus size={16} /> Add Region
+          <Plus size={16} /> Добавить регион
         </Button>
       </div>
 
@@ -75,9 +75,9 @@ export default function Regions() {
             <TableHeader>
               <TableRow>
                 <TableHead>ID</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Manager Email</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead>Название</TableHead>
+                <TableHead>Email менеджера</TableHead>
+                <TableHead className="text-right">Действия</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -99,7 +99,7 @@ export default function Regions() {
                 </TableRow>
               ))}
               {!isLoading && regions?.length === 0 && (
-                <TableRow><TableCell colSpan={4} className="text-center py-8 text-muted-foreground">No regions found</TableCell></TableRow>
+                <TableRow><TableCell colSpan={4} className="text-center py-8 text-muted-foreground">Регионы не найдены</TableCell></TableRow>
               )}
             </TableBody>
           </Table>
@@ -109,31 +109,31 @@ export default function Regions() {
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{editingRegion?.id ? "Edit Region" : "Add Region"}</DialogTitle>
+            <DialogTitle>{editingRegion?.id ? "Редактировать регион" : "Добавить регион"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label>Region Name</Label>
-              <Input 
-                value={editingRegion?.name || ""} 
-                onChange={e => setEditingRegion(prev => prev ? {...prev, name: e.target.value} : null)} 
-                placeholder="e.g. Московская область"
+              <Label>Название региона</Label>
+              <Input
+                value={editingRegion?.name || ""}
+                onChange={e => setEditingRegion(prev => prev ? {...prev, name: e.target.value} : null)}
+                placeholder="например, Московская область"
               />
             </div>
             <div className="space-y-2">
-              <Label>Manager Email</Label>
-              <Input 
+              <Label>Email менеджера</Label>
+              <Input
                 type="email"
-                value={editingRegion?.managerEmail || ""} 
-                onChange={e => setEditingRegion(prev => prev ? {...prev, managerEmail: e.target.value} : null)} 
+                value={editingRegion?.managerEmail || ""}
+                onChange={e => setEditingRegion(prev => prev ? {...prev, managerEmail: e.target.value} : null)}
                 placeholder="manager@example.com"
               />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Отмена</Button>
             <Button onClick={handleSave} disabled={createRegion.isPending || updateRegion.isPending}>
-              {createRegion.isPending || updateRegion.isPending ? "Saving..." : "Save"}
+              {createRegion.isPending || updateRegion.isPending ? "Сохранение..." : "Сохранить"}
             </Button>
           </DialogFooter>
         </DialogContent>

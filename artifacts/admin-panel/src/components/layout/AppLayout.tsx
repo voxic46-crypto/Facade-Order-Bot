@@ -3,12 +3,12 @@ import { LayoutDashboard, Map, ListTree, Banknote, Upload, ShoppingCart, Bot } f
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/regions", label: "Regions", icon: Map },
-  { href: "/catalog", label: "Catalog", icon: ListTree },
-  { href: "/prices", label: "Prices", icon: Banknote },
-  { href: "/import", label: "Import", icon: Upload },
-  { href: "/orders", label: "Orders", icon: ShoppingCart },
+  { href: "/", label: "Главная", icon: LayoutDashboard },
+  { href: "/regions", label: "Регионы", icon: Map },
+  { href: "/catalog", label: "Каталог", icon: ListTree },
+  { href: "/prices", label: "Прайс", icon: Banknote },
+  { href: "/import", label: "Импорт", icon: Upload },
+  { href: "/orders", label: "Заказы", icon: ShoppingCart },
 ];
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
@@ -46,11 +46,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         <div className="p-4 border-t border-slate-800">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-sm font-bold">
-              AD
+              АД
             </div>
             <div className="text-sm">
-              <div className="font-medium">Admin</div>
-              <div className="text-xs text-slate-400">System</div>
+              <div className="font-medium">Администратор</div>
+              <div className="text-xs text-slate-400">Система</div>
             </div>
           </div>
         </div>

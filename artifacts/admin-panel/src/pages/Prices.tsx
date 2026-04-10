@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useListPrices, getListPricesQueryKey, useUpdatePrice, useListRegions, useListDecors } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,9 +13,9 @@ export default function Prices() {
   const [selectedRegionId, setSelectedRegionId] = useState<string>("");
   const { data: regions } = useListRegions();
   const { data: decors } = useListDecors();
-  
-  const regionIdNum = selectedRegionId ? parseInt(selectedRegionId, 10) : undefined;
-  
+
+  const regionIdNum = selectedRegionId && selectedRegionId !== "all" ? parseInt(selectedRegionId, 10) : undefined;
+
   const { data: prices, isLoading } = useListPrices(regionIdNum ? { regionId: regionIdNum } : {});
   const updatePrice = useUpdatePrice();
   const queryClient = useQueryClient();
@@ -34,40 +34,40 @@ export default function Prices() {
   };
 
   const handleSave = (id: number) => {
-    updatePrice.mutate({ 
-      id, 
-      data: { 
+    updatePrice.mutate({
+      id,
+      data: {
         pricePerSqm: editValues.sqm,
         pricePerHole: editValues.hole,
         pricePackagingPerSqm: editValues.packaging
-      } 
+      }
     }, {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: getListPricesQueryKey(regionIdNum ? { regionId: regionIdNum } : {}) });
         setEditingPriceId(null);
-        toast({ title: "Price updated" });
+        toast({ title: "Цена обновлена" });
       }
     });
   };
 
-  const getDecorName = (id: number) => decors?.find(d => d.id === id)?.name || "Unknown";
-  const getRegionName = (id: number) => regions?.find(r => r.id === id)?.name || "Unknown";
+  const getDecorName = (id: number) => decors?.find(d => d.id === id)?.name || "Неизвестно";
+  const getRegionName = (id: number) => regions?.find(r => r.id === id)?.name || "Неизвестно";
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Prices</h1>
-          <p className="text-muted-foreground mt-1">Manage pricing per region and decor.</p>
+          <h1 className="text-3xl font-bold tracking-tight">Прайс</h1>
+          <p className="text-muted-foreground mt-1">Управление ценами по регионам и декорам.</p>
         </div>
-        
+
         <div className="w-full md:w-64">
           <Select value={selectedRegionId} onValueChange={setSelectedRegionId}>
             <SelectTrigger>
-              <SelectValue placeholder="Filter by Region" />
+              <SelectValue placeholder="Фильтр по региону" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Regions</SelectItem>
+              <SelectItem value="all">Все регионы</SelectItem>
               {regions?.map(r => (
                 <SelectItem key={r.id} value={r.id.toString()}>{r.name}</SelectItem>
               ))}
@@ -81,12 +81,12 @@ export default function Prices() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Region</TableHead>
-                <TableHead>Decor</TableHead>
-                <TableHead>Price / m²</TableHead>
-                <TableHead>Price / Hole</TableHead>
-                <TableHead>Packaging / m²</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead>Регион</TableHead>
+                <TableHead>Декор</TableHead>
+                <TableHead>Цена / м²</TableHead>
+                <TableHead>Цена / отверстие</TableHead>
+                <TableHead>Упаковка / м²</TableHead>
+                <TableHead className="text-right">Действия</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -94,7 +94,7 @@ export default function Prices() {
                 <TableRow><TableCell colSpan={6} className="text-center py-8"><Loader2 className="mx-auto h-6 w-6 animate-spin text-muted-foreground" /></TableCell></TableRow>
               ) : prices?.map((price) => {
                 const isEditing = editingPriceId === price.id;
-                
+
                 return (
                   <TableRow key={price.id}>
                     <TableCell>{getRegionName(price.regionId)}</TableCell>
@@ -117,11 +117,11 @@ export default function Prices() {
                     <TableCell className="text-right">
                       {isEditing ? (
                         <Button size="sm" onClick={() => handleSave(price.id)} disabled={updatePrice.isPending} className="h-8 gap-1">
-                          <Save size={14} /> Save
+                          <Save size={14} /> Сохранить
                         </Button>
                       ) : (
                         <Button variant="ghost" size="sm" onClick={() => handleEdit(price)} className="h-8">
-                          Edit
+                          Изменить
                         </Button>
                       )}
                     </TableCell>
@@ -129,7 +129,7 @@ export default function Prices() {
                 );
               })}
               {!isLoading && prices?.length === 0 && (
-                <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">No prices found</TableCell></TableRow>
+                <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Цены не найдены. Выберите регион или загрузите каталог.</TableCell></TableRow>
               )}
             </TableBody>
           </Table>

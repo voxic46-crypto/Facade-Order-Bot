@@ -4,6 +4,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { ShoppingCart, MapPin, TrendingUp, CheckCircle } from "lucide-react";
 import { format } from "date-fns";
+import { ru } from "date-fns/locale";
+
+const STATUS_LABELS: Record<string, string> = {
+  new: "Новый",
+  processing: "В обработке",
+  completed: "Завершён",
+  cancelled: "Отменён",
+};
 
 export default function Dashboard() {
   const { data: orders, isLoading: loadingOrders } = useListOrders();
@@ -13,19 +21,19 @@ export default function Dashboard() {
   const completedOrders = orders?.filter(o => o.status === "completed").length || 0;
   const totalRevenue = orders?.reduce((acc, order) => acc + parseFloat(order.totalCost), 0) || 0;
 
-  const getRegionName = (id: number) => regions?.find(r => r.id === id)?.name || "Unknown";
+  const getRegionName = (id: number) => regions?.find(r => r.id === id)?.name || "Неизвестно";
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground mt-1">Overview of facade bot operations.</p>
+        <h1 className="text-3xl font-bold tracking-tight">Главная</h1>
+        <p className="text-muted-foreground mt-1">Обзор работы бота по заказу фасадов.</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Orders</CardTitle>
+            <CardTitle className="text-sm font-medium">Всего заказов</CardTitle>
             <ShoppingCart className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -34,7 +42,7 @@ export default function Dashboard() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Completed</CardTitle>
+            <CardTitle className="text-sm font-medium">Завершено</CardTitle>
             <CheckCircle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -43,7 +51,7 @@ export default function Dashboard() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+            <CardTitle className="text-sm font-medium">Общая выручка</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -52,7 +60,7 @@ export default function Dashboard() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Regions</CardTitle>
+            <CardTitle className="text-sm font-medium">Активных регионов</CardTitle>
             <MapPin className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -63,40 +71,40 @@ export default function Dashboard() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Recent Orders</CardTitle>
+          <CardTitle>Последние заказы</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>ID</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Customer</TableHead>
-                <TableHead>Region</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Total</TableHead>
+                <TableHead>Дата</TableHead>
+                <TableHead>Клиент</TableHead>
+                <TableHead>Регион</TableHead>
+                <TableHead>Статус</TableHead>
+                <TableHead className="text-right">Сумма</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loadingOrders ? (
-                <TableRow><TableCell colSpan={6} className="text-center py-4">Loading...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={6} className="text-center py-4">Загрузка...</TableCell></TableRow>
               ) : orders && orders.length > 0 ? (
                 orders.slice(0, 5).map(order => (
                   <TableRow key={order.id}>
                     <TableCell className="font-medium">#{order.id}</TableCell>
-                    <TableCell>{format(new Date(order.createdAt), 'dd.MM.yyyy HH:mm')}</TableCell>
+                    <TableCell>{format(new Date(order.createdAt), 'dd.MM.yyyy HH:mm', { locale: ru })}</TableCell>
                     <TableCell>{order.customerName}</TableCell>
                     <TableCell>{getRegionName(order.regionId)}</TableCell>
                     <TableCell>
                       <Badge variant={order.status === "completed" ? "default" : "secondary"}>
-                        {order.status}
+                        {STATUS_LABELS[order.status] || order.status}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">{parseFloat(order.totalCost).toLocaleString("ru-RU")} ₽</TableCell>
                   </TableRow>
                 ))
               ) : (
-                <TableRow><TableCell colSpan={6} className="text-center py-4">No recent orders</TableCell></TableRow>
+                <TableRow><TableCell colSpan={6} className="text-center py-4">Нет заказов</TableCell></TableRow>
               )}
             </TableBody>
           </Table>

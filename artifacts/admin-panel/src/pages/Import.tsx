@@ -6,10 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { UploadCloud, FileDown, CheckCircle, AlertCircle } from "lucide-react";
+import { UploadCloud, CheckCircle, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
-// Creating a manual mutation since useImportCatalog handles multipart form data
 const useImportCatalog = () => {
   return useMutation({
     mutationFn: async (data: FormData) => {
@@ -17,7 +16,7 @@ const useImportCatalog = () => {
         method: 'POST',
         body: data,
       });
-      if (!res.ok) throw new Error("Import failed");
+      if (!res.ok) throw new Error("Ошибка импорта");
       return res.json();
     }
   });
@@ -45,10 +44,10 @@ export default function Import() {
 
     importCatalog.mutate(formData, {
       onSuccess: (data) => {
-        toast({ title: "Import completed", description: data.message });
+        toast({ title: "Импорт завершён", description: data.message });
       },
       onError: () => {
-        toast({ title: "Import failed", variant: "destructive" });
+        toast({ title: "Ошибка импорта", variant: "destructive" });
       }
     });
   };
@@ -56,22 +55,22 @@ export default function Import() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Import Catalog</h1>
-        <p className="text-muted-foreground mt-1">Upload Excel or CSV files to update the catalog and prices.</p>
+        <h1 className="text-3xl font-bold tracking-tight">Импорт каталога</h1>
+        <p className="text-muted-foreground mt-1">Загрузите файл Excel или CSV для обновления каталога и прайсов.</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
-            <CardTitle>Upload File</CardTitle>
-            <CardDescription>Select a region and upload the pricing file.</CardDescription>
+            <CardTitle>Загрузка файла</CardTitle>
+            <CardDescription>Выберите регион и загрузите прайс-файл.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="space-y-2">
-              <Label>Target Region</Label>
+              <Label>Регион</Label>
               <Select value={regionId} onValueChange={setRegionId}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select a region..." />
+                  <SelectValue placeholder="Выберите регион..." />
                 </SelectTrigger>
                 <SelectContent>
                   {regions?.map(r => (
@@ -82,30 +81,30 @@ export default function Import() {
             </div>
 
             <div className="space-y-2">
-              <Label>File (CSV, Excel)</Label>
+              <Label>Файл (CSV, Excel)</Label>
               <div className="border-2 border-dashed rounded-lg p-6 flex flex-col items-center justify-center text-center space-y-2 bg-slate-50 border-slate-200">
                 <UploadCloud className="h-8 w-8 text-slate-400" />
                 <div className="text-sm">
                   <label htmlFor="file-upload" className="relative cursor-pointer rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none">
-                    <span>Upload a file</span>
+                    <span>Выберите файл</span>
                     <input id="file-upload" name="file-upload" type="file" className="sr-only" onChange={handleFileChange} accept=".csv,.xlsx,.xls" />
                   </label>
-                  <p className="text-slate-500">or drag and drop</p>
+                  <p className="text-slate-500">или перетащите сюда</p>
                 </div>
                 {file && <p className="text-sm font-medium text-slate-900">{file.name}</p>}
               </div>
             </div>
 
             <Button onClick={handleUpload} disabled={!regionId || !file || importCatalog.isPending} className="w-full">
-              {importCatalog.isPending ? "Importing..." : "Start Import"}
+              {importCatalog.isPending ? "Импортируем..." : "Начать импорт"}
             </Button>
 
             {importCatalog.data && (
               <Alert variant={importCatalog.data.success ? "default" : "destructive"} className="mt-4">
                 {importCatalog.data.success ? <CheckCircle className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
-                <AlertTitle>{importCatalog.data.success ? "Success" : "Errors occurred"}</AlertTitle>
+                <AlertTitle>{importCatalog.data.success ? "Успешно" : "Ошибки при импорте"}</AlertTitle>
                 <AlertDescription>
-                  <p>Imported: {importCatalog.data.imported} items</p>
+                  <p>Импортировано позиций: {importCatalog.data.imported}</p>
                   {importCatalog.data.errors && importCatalog.data.errors.length > 0 && (
                     <ul className="list-disc pl-4 mt-2 text-xs opacity-80 max-h-32 overflow-y-auto">
                       {importCatalog.data.errors.map((e: string, i: number) => <li key={i}>{e}</li>)}
@@ -119,8 +118,8 @@ export default function Import() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Format Requirements</CardTitle>
-            <CardDescription>Ensure your file matches exactly.</CardDescription>
+            <CardTitle>Формат файла</CardTitle>
+            <CardDescription>Убедитесь, что файл соответствует следующей структуре.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="rounded-md bg-slate-950 p-4 overflow-x-auto">
@@ -148,12 +147,9 @@ export default function Import() {
               </table>
             </div>
             <p className="text-sm text-muted-foreground">
-              Note: The importer will automatically create missing Manufacturers, Collections, and Decors. 
-              Prices will be created or updated for the selected region.
+              При импорте автоматически создаются новые производители, коллекции и декоры.
+              Цены будут созданы или обновлены для выбранного региона.
             </p>
-            <Button variant="outline" className="w-full gap-2">
-              <FileDown size={16} /> Download Sample Template
-            </Button>
           </CardContent>
         </Card>
       </div>
