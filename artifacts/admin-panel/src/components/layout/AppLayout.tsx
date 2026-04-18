@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { LayoutDashboard, Map, ListTree, Banknote, Upload, ShoppingCart, Bot } from "lucide-react";
+import { LayoutDashboard, Map, ListTree, Banknote, Upload, ShoppingCart, Bot, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
@@ -9,6 +9,7 @@ const NAV_ITEMS = [
   { href: "/prices", label: "Прайс", icon: Banknote },
   { href: "/import", label: "Импорт", icon: Upload },
   { href: "/orders", label: "Заказы", icon: ShoppingCart },
+  { href: "/invoice-settings", label: "Реквизиты", icon: FileText },
   { href: "/bot", label: "Telegram-бот", icon: Bot },
 ];
 

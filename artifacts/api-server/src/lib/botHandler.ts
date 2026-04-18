@@ -1,7 +1,8 @@
-import { db, regionsTable, manufacturersTable, collectionsTable, decorsTable, pricesTable, ordersTable, orderItemsTable } from "@workspace/db";
+import { db, regionsTable, manufacturersTable, collectionsTable, decorsTable, pricesTable, ordersTable, orderItemsTable, invoiceSettingsTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
 import { logger } from "./logger";
 import { calculateItems, generateOrderExcel, buildOrderEmailHtml } from "./orderUtils";
+import { buildInvoiceNumber, generateInvoiceExcel, type InvoiceSettingsData } from "./invoiceUtils";
 import { sendOrderEmail } from "./email";
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN ?? "";
@@ -517,6 +518,14 @@ async function createAndSendOrder(chatId: number, userId: string, state: BotStat
     state.pricePackagingPerSqm!,
   );
 
+  // Получаем реквизиты для счёта
+  const settingsRows = await db.select().from(invoiceSettingsTable).limit(1);
+  const settings: InvoiceSettingsData = settingsRows[0] ?? {
+    supplierName: "", supplierInn: "", supplierKpp: "", supplierAddress: "",
+    supplierPhone: "", supplierEmail: "", bankName: "", bankAccount: "",
+    bankBic: "", bankCorrespondentAccount: "", invoicePrefix: "СЧ-",
+  };
+
   const [order] = await db.insert(ordersTable).values({
     regionId: state.regionId,
     decorId: state.decorId,
@@ -530,6 +539,10 @@ async function createAndSendOrder(chatId: number, userId: string, state: BotStat
     attachedFileUrl: state.attachedFileUrl ?? null,
     status: "new",
   }).returning();
+
+  // Генерируем номер счёта и сохраняем
+  const invoiceNumber = buildInvoiceNumber(settings.invoicePrefix, order.id, order.createdAt);
+  await db.update(ordersTable).set({ invoiceNumber }).where(eq(ordersTable.id, order.id));
 
   const itemValues = calculated.map((item) => ({
     orderId: order.id,
@@ -566,9 +579,29 @@ async function createAndSendOrder(chatId: number, userId: string, state: BotStat
   // Отправляем Excel-бланк клиенту
   await sendDocumentBuffer(chatId, excelBuffer, `order_${order.id}.xlsx`, `📎 Бланк заказа #${order.id}`);
 
+  // Генерируем счёт и отправляем клиенту
+  const invoiceExcelBuffer = generateInvoiceExcel({
+    invoiceNumber,
+    invoiceDate: order.createdAt,
+    settings,
+    customerName: state.customerName!,
+    customerContact: state.customerContact!,
+    decorName: decor?.name ?? "—",
+    collectionName: collection?.name ?? "—",
+    manufacturerName: manufacturer?.name ?? "—",
+    items: calculated,
+    totalFacadesCost,
+    totalHolesCost,
+    totalPackagingCost,
+    totalCost,
+  });
+  await sendDocumentBuffer(chatId, invoiceExcelBuffer, `invoice_${invoiceNumber}.xlsx`, `🧾 Счёт на оплату № ${invoiceNumber}`);
+
   // Скачиваем файл присадки (если был прикреплён) для вложения в email
+  const xlsx = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
   const emailAttachments: Array<{ filename: string; content: Buffer; contentType: string }> = [
-    { filename: `order_${order.id}.xlsx`, content: excelBuffer, contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }
+    { filename: `order_${order.id}.xlsx`, content: excelBuffer, contentType: xlsx },
+    { filename: `invoice_${invoiceNumber}.xlsx`, content: invoiceExcelBuffer, contentType: xlsx },
   ];
 
   if (state.attachedFileUrl && state.attachedFileName) {
@@ -610,14 +643,16 @@ async function createAndSendOrder(chatId: number, userId: string, state: BotStat
   sessions.delete(userId);
 
   const fileNote = state.attachedFileName
-    ? `\n📎 Файл присадки *«${state.attachedFileName}»* приложен к заказу.`
+    ? `\n📎 Файл присадки *«${state.attachedFileName}»* приложен.`
     : "";
 
   await sendMessage(
     chatId,
     `✅ *Заказ #${order.id} оформлен!*\n\n` +
     `Итоговая стоимость: *${totalCost} ₽*\n\n` +
-    `Бланк-заказ в Excel отправлен выше 👆${fileNote}\n\n` +
+    `Выше отправлены два документа:\n` +
+    `📄 Бланк-заказ\n` +
+    `🧾 Счёт на оплату № ${invoiceNumber}${fileNote}\n\n` +
     `Менеджер получил уведомление по email и свяжется с вами.\n\n` +
     `Для нового заказа введите /start`
   );

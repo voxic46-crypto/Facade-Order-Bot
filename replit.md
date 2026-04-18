@@ -2,7 +2,7 @@
 
 ## Overview
 
-pnpm workspace monorepo using TypeScript. System for managing facade orders via MAX messenger bot.
+pnpm workspace monorepo using TypeScript. System for managing facade orders via Telegram bot.
 
 ## Stack
 

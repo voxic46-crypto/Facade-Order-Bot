@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, FileText, User, MapPin, Calendar } from "lucide-react";
+import { ArrowLeft, FileText, User, MapPin, Calendar, Receipt } from "lucide-react";
 import { format } from "date-fns";
 import { ru } from "date-fns/locale";
 
@@ -51,11 +51,16 @@ export default function OrderDetail() {
           </div>
           <p className="text-muted-foreground mt-1">Создан {format(new Date(order.createdAt), 'dd MMMM yyyy, HH:mm', { locale: ru })}</p>
         </div>
-        <div className="ml-auto flex gap-2">
+        <div className="ml-auto flex gap-2 flex-wrap">
+          <Button variant="outline" className="gap-2" asChild>
+            <a href={`/api/orders/${order.id}/invoice`} download>
+              <Receipt size={16} /> Скачать счёт
+            </a>
+          </Button>
           {order.attachedFileUrl && (
             <Button variant="outline" className="gap-2" asChild>
               <a href={order.attachedFileUrl} target="_blank" rel="noreferrer">
-                <FileText size={16} /> Исходный файл
+                <FileText size={16} /> Файл присадки
               </a>
             </Button>
           )}
@@ -126,6 +131,15 @@ export default function OrderDetail() {
                   <div className="text-muted-foreground">{format(new Date(order.createdAt), 'dd MMMM yyyy, HH:mm', { locale: ru })}</div>
                 </div>
               </div>
+              {order.invoiceNumber && (
+                <div className="flex items-start gap-3">
+                  <Receipt className="h-4 w-4 mt-0.5 text-muted-foreground" />
+                  <div>
+                    <div className="font-medium">Счёт на оплату</div>
+                    <div className="text-muted-foreground">№ {order.invoiceNumber}</div>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 

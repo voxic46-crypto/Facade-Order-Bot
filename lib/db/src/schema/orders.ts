@@ -14,6 +14,7 @@ export const ordersTable = pgTable("orders", {
   totalPackagingCost: numeric("total_packaging_cost", { precision: 10, scale: 2 }).notNull(),
   totalCost: numeric("total_cost", { precision: 10, scale: 2 }).notNull(),
   attachedFileUrl: text("attached_file_url"),
+  invoiceNumber: text("invoice_number"),
   status: text("status").notNull().default("new"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),

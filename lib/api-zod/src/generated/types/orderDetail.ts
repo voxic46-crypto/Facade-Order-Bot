@@ -20,6 +20,8 @@ export interface OrderDetail {
   totalCost: string;
   /** @nullable */
   attachedFileUrl: string | null;
+  /** @nullable */
+  invoiceNumber?: string | null;
   status: string;
   items: OrderItem[];
   createdAt: Date;

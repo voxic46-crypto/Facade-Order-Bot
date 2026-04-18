@@ -198,6 +198,7 @@ export const ListOrdersResponseItem = zod.object({
   customerContact: zod.string(),
   totalArea: zod.string(),
   totalCost: zod.string(),
+  invoiceNumber: zod.string().nullish(),
   status: zod.string(),
   createdAt: zod.coerce.date(),
 });
@@ -242,6 +243,7 @@ export const GetOrderResponse = zod.object({
   totalPackagingCost: zod.string(),
   totalCost: zod.string(),
   attachedFileUrl: zod.string().nullable(),
+  invoiceNumber: zod.string().nullish(),
   status: zod.string(),
   items: zod.array(
     zod.object({

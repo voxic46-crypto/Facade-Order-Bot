@@ -694,6 +694,8 @@ components:
           type: string
         totalCost:
           type: string
+        invoiceNumber:
+          type: ["string", "null"]
         status:
           type: string
         createdAt:
@@ -734,6 +736,8 @@ components:
         totalCost:
           type: string
         attachedFileUrl:
+          type: ["string", "null"]
+        invoiceNumber:
           type: ["string", "null"]
         status:
           type: string

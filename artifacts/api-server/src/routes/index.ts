@@ -8,6 +8,7 @@ import pricesRouter from "./prices";
 import ordersRouter from "./orders";
 import catalogRouter from "./catalog";
 import botWebhookRouter from "./botWebhook";
+import invoiceSettingsRouter from "./invoiceSettings";
 
 const router: IRouter = Router();
 
@@ -20,5 +21,6 @@ router.use(pricesRouter);
 router.use(ordersRouter);
 router.use(catalogRouter);
 router.use(botWebhookRouter);
+router.use(invoiceSettingsRouter);
 
 export default router;

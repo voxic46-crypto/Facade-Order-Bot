@@ -113,6 +113,8 @@ export interface OrderSummary {
   customerContact: string;
   totalArea: string;
   totalCost: string;
+  /** @nullable */
+  invoiceNumber?: string | null;
   status: string;
   createdAt: string;
 }
@@ -130,6 +132,8 @@ export interface OrderDetail {
   totalCost: string;
   /** @nullable */
   attachedFileUrl: string | null;
+  /** @nullable */
+  invoiceNumber?: string | null;
   status: string;
   items: OrderItem[];
   createdAt: string;
