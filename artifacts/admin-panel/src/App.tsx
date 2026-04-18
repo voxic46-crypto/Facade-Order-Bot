@@ -12,6 +12,7 @@ import Prices from "@/pages/Prices";
 import Import from "@/pages/Import";
 import Orders from "@/pages/Orders";
 import OrderDetail from "@/pages/OrderDetail";
+import BotSettings from "@/pages/BotSettings";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -33,6 +34,7 @@ function Router() {
         <Route path="/import" component={Import} />
         <Route path="/orders" component={Orders} />
         <Route path="/orders/:id" component={OrderDetail} />
+        <Route path="/bot" component={BotSettings} />
         <Route component={NotFound} />
       </Switch>
     </AppLayout>

@@ -9,6 +9,7 @@ const NAV_ITEMS = [
   { href: "/prices", label: "Прайс", icon: Banknote },
   { href: "/import", label: "Импорт", icon: Upload },
   { href: "/orders", label: "Заказы", icon: ShoppingCart },
+  { href: "/bot", label: "Telegram-бот", icon: Bot },
 ];
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
