@@ -40,14 +40,13 @@ async function answerCallbackQuery(id: string): Promise<void> {
   await tgRequest("answerCallbackQuery", { callback_query_id: id });
 }
 
-async function sendDocument(chatId: number, buffer: Buffer, filename: string, caption?: string): Promise<void> {
+async function sendDocumentBuffer(chatId: number, buffer: Buffer, filename: string, caption?: string): Promise<void> {
   if (!TELEGRAM_BOT_TOKEN) return;
   try {
     const form = new FormData();
     form.append("chat_id", String(chatId));
     form.append("document", new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }), filename);
     if (caption) form.append("caption", caption);
-
     const resp = await fetch(`${TG_API()}/sendDocument`, { method: "POST", body: form });
     if (!resp.ok) {
       const text = await resp.text();
@@ -55,6 +54,34 @@ async function sendDocument(chatId: number, buffer: Buffer, filename: string, ca
     }
   } catch (err) {
     logger.error({ err }, "Failed to send document to Telegram");
+  }
+}
+
+// Получить URL файла из Telegram по file_id
+async function getTelegramFileUrl(fileId: string): Promise<string | null> {
+  if (!TELEGRAM_BOT_TOKEN) return null;
+  try {
+    const resp = await fetch(`${TG_API()}/getFile?file_id=${fileId}`);
+    const data = await resp.json() as { ok: boolean; result?: { file_path?: string } };
+    if (data.ok && data.result?.file_path) {
+      return `https://api.telegram.org/file/bot${TELEGRAM_BOT_TOKEN}/${data.result.file_path}`;
+    }
+  } catch (err) {
+    logger.error({ err }, "Failed to get file from Telegram");
+  }
+  return null;
+}
+
+// Скачать файл из Telegram для вложения в email
+async function downloadTelegramFile(fileUrl: string): Promise<Buffer | null> {
+  try {
+    const resp = await fetch(fileUrl);
+    if (!resp.ok) return null;
+    const arrayBuffer = await resp.arrayBuffer();
+    return Buffer.from(arrayBuffer);
+  } catch (err) {
+    logger.error({ err }, "Failed to download Telegram file");
+    return null;
   }
 }
 
@@ -74,12 +101,15 @@ type BotState = {
   pricePerSqm?: number;
   pricePerHole?: number;
   pricePackagingPerSqm?: number;
+  attachedFileId?: string;
+  attachedFileName?: string;
+  attachedFileUrl?: string;
 };
 
 const sessions = new Map<string, BotState>();
 
 export async function handleBotUpdate(update: Record<string, unknown>): Promise<void> {
-  // Handle callback_query (button presses)
+  // --- Нажатие кнопки (callback_query) ---
   if (update.callback_query) {
     const cb = update.callback_query as Record<string, unknown>;
     const cbMessage = cb.message as Record<string, unknown> | undefined;
@@ -89,15 +119,14 @@ export async function handleBotUpdate(update: Record<string, unknown>): Promise<
     const data = String(cb.data ?? "").trim();
 
     if (!chatId || !userId) return;
-
     await answerCallbackQuery(String(cb.id));
 
-    let state = sessions.get(userId) ?? { step: "start" };
-    await processStep(userId, chatId, data, state);
+    const state = sessions.get(userId) ?? { step: "start" };
+    await processStep(userId, chatId, data, state, null);
     return;
   }
 
-  // Handle regular messages
+  // --- Обычное сообщение ---
   const message = update.message as Record<string, unknown> | undefined;
   if (!message) return;
 
@@ -109,17 +138,51 @@ export async function handleBotUpdate(update: Record<string, unknown>): Promise<
 
   if (!chatId || !userId) return;
 
-  let state = sessions.get(userId) ?? { step: "start" };
+  const state = sessions.get(userId) ?? { step: "start" };
 
   if (text === "/start") {
-    state = { step: "select_region" };
-    sessions.set(userId, state);
+    sessions.set(userId, { step: "select_region" });
     await sendSelectRegion(chatId);
     return;
   }
 
-  await processStep(userId, chatId, text, state);
+  // --- Обработка файла (document / photo) ---
+  const document = message.document as Record<string, unknown> | undefined;
+  const photo = message.photo as Array<Record<string, unknown>> | undefined;
+
+  if ((document || photo) && state.step === "attach_file") {
+    let fileId: string;
+    let fileName: string;
+
+    if (document) {
+      fileId = String(document.file_id ?? "");
+      fileName = String(document.file_name ?? `присадка_${Date.now()}`);
+    } else {
+      // photo — берём наибольший размер
+      const largest = photo![photo!.length - 1];
+      fileId = String(largest.file_id ?? "");
+      fileName = `присадка_${Date.now()}.jpg`;
+    }
+
+    const fileUrl = await getTelegramFileUrl(fileId);
+
+    state.attachedFileId = fileId;
+    state.attachedFileName = fileName;
+    state.attachedFileUrl = fileUrl ?? undefined;
+    state.step = "confirm";
+    sessions.set(userId, state);
+
+    await sendMessage(chatId, `📎 Файл *«${fileName}»* прикреплён к заказу.\n\nПроверьте детали и подтвердите заказ:`);
+    await sendOrderConfirmation(chatId, state);
+    return;
+  }
+
+  await processStep(userId, chatId, text, state, null);
 }
+
+// ─────────────────────────────────────────────
+//  Вспомогательные функции меню
+// ─────────────────────────────────────────────
 
 async function sendSelectRegion(chatId: number): Promise<void> {
   const regions = await db.select().from(regionsTable).orderBy(regionsTable.name);
@@ -162,7 +225,7 @@ async function sendSelectDecor(chatId: number, collectionId: number, regionId: n
   const available = decors.filter((d) => decorIdsWithPrice.has(d.id));
 
   if (!available.length) {
-    await sendMessage(chatId, "Нет декоров с прайсом для вашего региона в этой коллекции. Попробуйте другую коллекцию или обратитесь к менеджеру.");
+    await sendMessage(chatId, "Нет декоров с прайсом для вашего региона в этой коллекции. Попробуйте другую коллекцию.");
     return;
   }
 
@@ -170,7 +233,29 @@ async function sendSelectDecor(chatId: number, collectionId: number, regionId: n
   await sendMessage(chatId, "Выберите декор:", { inline_keyboard });
 }
 
-async function processStep(userId: string, chatId: number, text: string, state: BotState): Promise<void> {
+async function askForFile(chatId: number): Promise<void> {
+  const inline_keyboard = [[{ text: "⏩ Пропустить", callback_data: "skip_file" }]];
+  await sendMessage(
+    chatId,
+    `📂 *Файл присадки (необязательно)*\n\n` +
+    `Если у вас есть схема присадки фасадов — отправьте файл (PDF, DXF, Excel, фото и т.д.).\n\n` +
+    `Файл будет приложен к заказу и отправлен менеджеру.\n\n` +
+    `Если присадка не нужна — нажмите кнопку ниже.`,
+    { inline_keyboard }
+  );
+}
+
+// ─────────────────────────────────────────────
+//  Основная машина состояний
+// ─────────────────────────────────────────────
+
+async function processStep(
+  userId: string,
+  chatId: number,
+  text: string,
+  state: BotState,
+  _unused: null
+): Promise<void> {
 
   // --- Выбор региона ---
   if (state.step === "select_region") {
@@ -178,7 +263,6 @@ async function processStep(userId: string, chatId: number, text: string, state: 
       const regionId = parseInt(text.slice(2), 10);
       const [region] = await db.select().from(regionsTable).where(eq(regionsTable.id, regionId));
       if (!region) { await sendSelectRegion(chatId); return; }
-
       state.regionId = region.id;
       state.regionName = region.name;
       state.step = "select_manufacturer";
@@ -196,7 +280,6 @@ async function processStep(userId: string, chatId: number, text: string, state: 
       const manufacturerId = parseInt(text.slice(2), 10);
       const [manufacturer] = await db.select().from(manufacturersTable).where(eq(manufacturersTable.id, manufacturerId));
       if (!manufacturer) { await sendSelectManufacturer(chatId); return; }
-
       state.manufacturerId = manufacturer.id;
       state.manufacturerName = manufacturer.name;
       state.step = "select_collection";
@@ -214,7 +297,6 @@ async function processStep(userId: string, chatId: number, text: string, state: 
       const collectionId = parseInt(text.slice(2), 10);
       const [collection] = await db.select().from(collectionsTable).where(eq(collectionsTable.id, collectionId));
       if (!collection) { await sendSelectCollection(chatId, state.manufacturerId!); return; }
-
       state.collectionId = collection.id;
       state.collectionName = collection.name;
       state.step = "select_decor";
@@ -237,7 +319,7 @@ async function processStep(userId: string, chatId: number, text: string, state: 
         and(eq(pricesTable.regionId, state.regionId!), eq(pricesTable.decorId, decorId))
       );
       if (!priceRow) {
-        await sendMessage(chatId, `Для декора "${decor.name}" в вашем регионе нет прайса. Выберите другой декор.`);
+        await sendMessage(chatId, `Для декора "${decor.name}" нет прайса в вашем регионе. Выберите другой.`);
         await sendSelectDecor(chatId, state.collectionId!, state.regionId!);
         return;
       }
@@ -286,8 +368,8 @@ async function processStep(userId: string, chatId: number, text: string, state: 
       `Теперь введите позиции фасадов по одной строке.\n\n` +
       `*Формат:* высота ширина количество отверстия\n` +
       `*Пример:* \`720 596 2 2\`\n\n` +
-      `Высота и ширина в мм, отверстия — общее количество на все фасады позиции.\n\n` +
-      `Когда введёте все позиции — отправьте *готово*`
+      `Высота и ширина в мм. Отверстия — общее количество на все фасады данной позиции.\n\n` +
+      `Когда введёте все позиции — напишите *готово*`
     );
     return;
   }
@@ -300,9 +382,10 @@ async function processStep(userId: string, chatId: number, text: string, state: 
         await sendMessage(chatId, "Вы не добавили ни одной позиции.\n\nВведите позицию в формате:\n`высота ширина количество отверстия`\n\nПример: `720 596 2 2`");
         return;
       }
-      state.step = "confirm";
+      // Переходим к шагу прикрепления файла
+      state.step = "attach_file";
       sessions.set(userId, state);
-      await sendOrderConfirmation(chatId, state);
+      await askForFile(chatId);
     } else {
       const parsed = parseItemLine(text);
       if (!parsed) {
@@ -317,8 +400,22 @@ async function processStep(userId: string, chatId: number, text: string, state: 
         chatId,
         `✅ Позиция ${parsed.rowNumber} добавлена:\n` +
         `${parsed.height}×${parsed.width} мм, ${parsed.quantity} шт., ${parsed.holes} отв.\n\n` +
-        `Введите следующую позицию или отправьте *готово*`
+        `Введите следующую позицию или напишите *готово*`
       );
+    }
+    return;
+  }
+
+  // --- Прикрепление файла (текстовые команды) ---
+  if (state.step === "attach_file") {
+    if (text === "skip_file") {
+      // Пропустить файл
+      state.step = "confirm";
+      sessions.set(userId, state);
+      await sendOrderConfirmation(chatId, state);
+    } else {
+      // Напоминаем что нужно отправить файл или пропустить
+      await askForFile(chatId);
     }
     return;
   }
@@ -339,6 +436,10 @@ async function processStep(userId: string, chatId: number, text: string, state: 
   await sendMessage(chatId, "Введите /start чтобы начать оформление заказа.");
 }
 
+// ─────────────────────────────────────────────
+//  Парсинг строки позиции
+// ─────────────────────────────────────────────
+
 function parseItemLine(text: string): { rowNumber: number; height: number; width: number; quantity: number; holes: number } | null {
   const parts = text.trim().split(/\s+/);
   if (parts.length < 3) return null;
@@ -349,6 +450,10 @@ function parseItemLine(text: string): { rowNumber: number; height: number; width
   if (isNaN(height) || isNaN(width) || isNaN(quantity) || height <= 0 || width <= 0 || quantity <= 0) return null;
   return { rowNumber: 0, height, width, quantity, holes: isNaN(holes) ? 0 : holes };
 }
+
+// ─────────────────────────────────────────────
+//  Подтверждение заказа
+// ─────────────────────────────────────────────
 
 async function sendOrderConfirmation(chatId: number, state: BotState): Promise<void> {
   if (!state.items?.length) return;
@@ -365,6 +470,10 @@ async function sendOrderConfirmation(chatId: number, state: BotState): Promise<v
     itemsText += `${item.rowNumber}. ${item.height}×${item.width} мм × ${item.quantity} шт. | ${item.holes} отв. | ${item.area} м² | ${item.facadesCost} ₽\n`;
   }
 
+  const fileLine = state.attachedFileName
+    ? `📎 Файл присадки: *${state.attachedFileName}*\n`
+    : `📎 Файл присадки: не приложен\n`;
+
   const confirmText =
     `📋 *Подтверждение заказа*\n\n` +
     `🗺 Регион: ${state.regionName}\n` +
@@ -372,8 +481,9 @@ async function sendOrderConfirmation(chatId: number, state: BotState): Promise<v
     `📦 Коллекция: ${state.collectionName}\n` +
     `🎨 Декор: ${state.decorName}\n` +
     `👤 Клиент: ${state.customerName}\n` +
-    `📞 Контакт: ${state.customerContact}\n\n` +
-    `*Позиции:*\n${itemsText}\n` +
+    `📞 Контакт: ${state.customerContact}\n` +
+    fileLine +
+    `\n*Позиции:*\n${itemsText}\n` +
     `📐 Общая площадь: ${totalArea} м²\n` +
     `💰 Стоимость фасадов: ${totalFacadesCost} ₽\n` +
     `🔩 Стоимость отверстий: ${totalHolesCost} ₽\n` +
@@ -387,6 +497,10 @@ async function sendOrderConfirmation(chatId: number, state: BotState): Promise<v
 
   await sendMessage(chatId, confirmText, { inline_keyboard });
 }
+
+// ─────────────────────────────────────────────
+//  Создание и отправка заказа
+// ─────────────────────────────────────────────
 
 async function createAndSendOrder(chatId: number, userId: string, state: BotState): Promise<void> {
   if (!state.items?.length || !state.regionId || !state.decorId) return;
@@ -413,7 +527,7 @@ async function createAndSendOrder(chatId: number, userId: string, state: BotStat
     totalHolesCost: String(totalHolesCost),
     totalPackagingCost: String(totalPackagingCost),
     totalCost: String(totalCost),
-    attachedFileUrl: null,
+    attachedFileUrl: state.attachedFileUrl ?? null,
     status: "new",
   }).returning();
 
@@ -431,6 +545,7 @@ async function createAndSendOrder(chatId: number, userId: string, state: BotStat
   }));
   await db.insert(orderItemsTable).values(itemValues);
 
+  // Генерируем Excel-бланк
   const excelBuffer = generateOrderExcel({
     orderId: order.id,
     customerName: state.customerName!,
@@ -448,15 +563,24 @@ async function createAndSendOrder(chatId: number, userId: string, state: BotStat
     createdAt: order.createdAt,
   });
 
-  // Отправить Excel клиенту в чат
-  await sendDocument(
-    chatId,
-    excelBuffer,
-    `order_${order.id}.xlsx`,
-    `📎 Бланк заказа #${order.id}`
-  );
+  // Отправляем Excel-бланк клиенту
+  await sendDocumentBuffer(chatId, excelBuffer, `order_${order.id}.xlsx`, `📎 Бланк заказа #${order.id}`);
 
-  // Отправить письмо менеджеру региона
+  // Скачиваем файл присадки (если был прикреплён) для вложения в email
+  const emailAttachments: Array<{ filename: string; content: Buffer; contentType: string }> = [
+    { filename: `order_${order.id}.xlsx`, content: excelBuffer, contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }
+  ];
+
+  if (state.attachedFileUrl && state.attachedFileName) {
+    const fileBuffer = await downloadTelegramFile(state.attachedFileUrl);
+    if (fileBuffer) {
+      const ext = state.attachedFileName.split(".").pop() ?? "bin";
+      const mime = getMimeType(ext);
+      emailAttachments.push({ filename: state.attachedFileName, content: fileBuffer, contentType: mime });
+    }
+  }
+
+  // Отправляем письмо менеджеру региона
   if (region) {
     const emailHtml = buildOrderEmailHtml({
       orderId: order.id,
@@ -479,22 +603,37 @@ async function createAndSendOrder(chatId: number, userId: string, state: BotStat
       to: region.managerEmail,
       subject: `Новый заказ фасадов #${order.id} — ${state.customerName}`,
       html: emailHtml,
-      attachments: [{
-        filename: `order_${order.id}.xlsx`,
-        content: excelBuffer,
-        contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      }],
+      attachments: emailAttachments,
     });
   }
 
   sessions.delete(userId);
 
+  const fileNote = state.attachedFileName
+    ? `\n📎 Файл присадки *«${state.attachedFileName}»* приложен к заказу.`
+    : "";
+
   await sendMessage(
     chatId,
     `✅ *Заказ #${order.id} оформлен!*\n\n` +
     `Итоговая стоимость: *${totalCost} ₽*\n\n` +
-    `Бланк-заказ в Excel отправлен выше 👆\n` +
-    `Менеджер также получил уведомление по email и свяжется с вами.\n\n` +
+    `Бланк-заказ в Excel отправлен выше 👆${fileNote}\n\n` +
+    `Менеджер получил уведомление по email и свяжется с вами.\n\n` +
     `Для нового заказа введите /start`
   );
+}
+
+function getMimeType(ext: string): string {
+  const map: Record<string, string> = {
+    pdf: "application/pdf",
+    xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    xls: "application/vnd.ms-excel",
+    dxf: "application/dxf",
+    dwg: "application/acad",
+    jpg: "image/jpeg",
+    jpeg: "image/jpeg",
+    png: "image/png",
+    zip: "application/zip",
+  };
+  return map[ext.toLowerCase()] ?? "application/octet-stream";
 }
