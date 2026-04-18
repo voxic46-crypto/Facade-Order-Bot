@@ -6,3 +6,9 @@ id = "uIPCoQsq999sH4tXc30Pt"
 uri = "file://facadebot_deploy_guide.pdf"
 type = "pdf"
 title = "FacadeBot — Руководство по развёртыванию на Ubuntu Server"
+
+[[outputs]]
+id = "9WUgYKEoVqu4BAJ34-NX0"
+uri = "file://facadebot_github_guide.pdf"
+type = "pdf"
+title = "FacadeBot — Выгрузка проекта из Replit на GitHub"
