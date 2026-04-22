@@ -141,6 +141,7 @@ export function buildOrderEmailHtml(opts: {
   orderId: number;
   customerName: string;
   customerContact: string;
+  customerEmail?: string | null;
   regionName: string;
   decorName: string;
   collectionName: string;
@@ -153,11 +154,15 @@ export function buildOrderEmailHtml(opts: {
   itemsCount: number;
   createdAt: Date;
 }): string {
+  const emailRow = opts.customerEmail
+    ? `<tr><td><b>E-mail</b></td><td>${opts.customerEmail}</td></tr>`
+    : "";
   return `
     <h2>Новый заказ фасадов #${opts.orderId}</h2>
     <table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse">
       <tr><td><b>Клиент</b></td><td>${opts.customerName}</td></tr>
-      <tr><td><b>Контакт</b></td><td>${opts.customerContact}</td></tr>
+      <tr><td><b>Телефон</b></td><td>${opts.customerContact}</td></tr>
+      ${emailRow}
       <tr><td><b>Регион</b></td><td>${opts.regionName}</td></tr>
       <tr><td><b>Производитель</b></td><td>${opts.manufacturerName}</td></tr>
       <tr><td><b>Коллекция</b></td><td>${opts.collectionName}</td></tr>

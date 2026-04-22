@@ -8,6 +8,7 @@ export const ordersTable = pgTable("orders", {
   decorId: integer("decor_id").notNull(),
   customerName: text("customer_name").notNull(),
   customerContact: text("customer_contact").notNull(),
+  customerEmail: text("customer_email"),
   totalArea: numeric("total_area", { precision: 10, scale: 4 }).notNull(),
   totalFacadesCost: numeric("total_facades_cost", { precision: 10, scale: 2 }).notNull(),
   totalHolesCost: numeric("total_holes_cost", { precision: 10, scale: 2 }).notNull(),

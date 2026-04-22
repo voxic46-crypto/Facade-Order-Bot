@@ -114,7 +114,10 @@ export default function OrderDetail() {
                 <User className="h-4 w-4 mt-0.5 text-muted-foreground" />
                 <div>
                   <div className="font-medium">{order.customerName}</div>
-                  <div className="text-muted-foreground">{order.customerContact}</div>
+                  <div className="text-muted-foreground">📞 {order.customerContact}</div>
+                  {(order as any).customerEmail && (
+                    <div className="text-muted-foreground">📧 {(order as any).customerEmail}</div>
+                  )}
                 </div>
               </div>
               <div className="flex items-start gap-3">

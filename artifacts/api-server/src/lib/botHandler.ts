@@ -98,6 +98,7 @@ type BotState = {
   manufacturerName?: string;
   customerName?: string;
   customerContact?: string;
+  customerEmail?: string;
   items?: Array<{ rowNumber: number; height: number; width: number; quantity: number; holes: number }>;
   pricePerSqm?: number;
   pricePerHole?: number;
@@ -170,11 +171,10 @@ export async function handleBotUpdate(update: Record<string, unknown>): Promise<
     state.attachedFileId = fileId;
     state.attachedFileName = fileName;
     state.attachedFileUrl = fileUrl ?? undefined;
-    state.step = "confirm";
+    state.step = "enter_customer_name";
     sessions.set(userId, state);
 
-    await sendMessage(chatId, `📎 Файл *«${fileName}»* прикреплён к заказу.\n\nПроверьте детали и подтвердите заказ:`);
-    await sendOrderConfirmation(chatId, state);
+    await sendMessage(chatId, `📎 Файл *«${fileName}»* прикреплён к заказу.\n\nТеперь введите ваше имя и фамилию:`);
     return;
   }
 
@@ -331,47 +331,20 @@ async function processStep(
       state.pricePerHole = parseFloat(priceRow.pricePerHole);
       state.pricePackagingPerSqm = parseFloat(priceRow.pricePackagingPerSqm);
       state.items = [];
-      state.step = "enter_customer_name";
+      state.step = "enter_items";
       sessions.set(userId, state);
-      await sendMessage(chatId, `✅ Выбран декор: *${decor.name}*\n\nВведите ваше имя и фамилию:`);
+      await sendMessage(
+        chatId,
+        `✅ Выбран декор: *${decor.name}*\n\n` +
+        `Теперь введите позиции фасадов по одной строке.\n\n` +
+        `*Формат:* высота ширина количество отверстия\n` +
+        `*Пример:* \`720 596 2 2\`\n\n` +
+        `Высота и ширина в мм. Отверстия — количество на один фасад данной позиции.\n\n` +
+        `Когда введёте все позиции — напишите *готово*`
+      );
     } else {
       await sendSelectDecor(chatId, state.collectionId!, state.regionId!);
     }
-    return;
-  }
-
-  // --- Имя клиента ---
-  if (state.step === "enter_customer_name") {
-    if (!text || text.length < 2) {
-      await sendMessage(chatId, "Пожалуйста, введите ваше имя и фамилию:");
-      return;
-    }
-    state.customerName = text;
-    state.step = "enter_customer_contact";
-    sessions.set(userId, state);
-    await sendMessage(chatId, "Введите ваш номер телефона или e-mail для связи:");
-    return;
-  }
-
-  // --- Контакт клиента ---
-  if (state.step === "enter_customer_contact") {
-    if (!text) {
-      await sendMessage(chatId, "Введите ваш номер телефона или e-mail:");
-      return;
-    }
-    state.customerContact = text;
-    state.items = [];
-    state.step = "enter_items";
-    sessions.set(userId, state);
-    await sendMessage(
-      chatId,
-      `Спасибо, *${state.customerName}*! 👍\n\n` +
-      `Теперь введите позиции фасадов по одной строке.\n\n` +
-      `*Формат:* высота ширина количество отверстия\n` +
-      `*Пример:* \`720 596 2 2\`\n\n` +
-      `Высота и ширина в мм. Отверстия — общее количество на все фасады данной позиции.\n\n` +
-      `Когда введёте все позиции — напишите *готово*`
-    );
     return;
   }
 
@@ -410,14 +383,59 @@ async function processStep(
   // --- Прикрепление файла (текстовые команды) ---
   if (state.step === "attach_file") {
     if (text === "skip_file") {
-      // Пропустить файл
-      state.step = "confirm";
+      state.step = "enter_customer_name";
       sessions.set(userId, state);
-      await sendOrderConfirmation(chatId, state);
+      await sendMessage(chatId, "Хорошо, файл присадки пропущен.\n\nВведите ваше имя и фамилию:");
     } else {
-      // Напоминаем что нужно отправить файл или пропустить
       await askForFile(chatId);
     }
+    return;
+  }
+
+  // --- Имя клиента ---
+  if (state.step === "enter_customer_name") {
+    if (!text || text.length < 2) {
+      await sendMessage(chatId, "Пожалуйста, введите ваше имя и фамилию (минимум 2 символа):");
+      return;
+    }
+    state.customerName = text;
+    state.step = "enter_customer_phone";
+    sessions.set(userId, state);
+    await sendMessage(chatId, `Отлично, *${state.customerName}*! 👍\n\nВведите ваш номер телефона:`);
+    return;
+  }
+
+  // --- Телефон клиента ---
+  if (state.step === "enter_customer_phone") {
+    if (!text) {
+      await sendMessage(chatId, "Пожалуйста, введите ваш номер телефона:");
+      return;
+    }
+    state.customerContact = text;
+    state.step = "enter_customer_email";
+    sessions.set(userId, state);
+    await sendMessage(
+      chatId,
+      `Введите вашу электронную почту (e-mail):\n\n` +
+      `_Если не хотите указывать — напишите_ *нет*`
+    );
+    return;
+  }
+
+  // --- Email клиента (необязательно) ---
+  if (state.step === "enter_customer_email") {
+    const lower = text.toLowerCase().trim();
+    if (lower === "нет" || lower === "-" || lower === "no" || lower === "skip") {
+      state.customerEmail = undefined;
+    } else if (!text.includes("@")) {
+      await sendMessage(chatId, `Кажется, это не e-mail адрес.\n\nВведите почту (например: \`ivanov@mail.ru\`) или напишите *нет* чтобы пропустить:`);
+      return;
+    } else {
+      state.customerEmail = text;
+    }
+    state.step = "confirm";
+    sessions.set(userId, state);
+    await sendOrderConfirmation(chatId, state);
     return;
   }
 
@@ -475,15 +493,20 @@ async function sendOrderConfirmation(chatId: number, state: BotState): Promise<v
     ? `📎 Файл присадки: *${state.attachedFileName}*\n`
     : `📎 Файл присадки: не приложен\n`;
 
+  const emailLine = state.customerEmail
+    ? `📧 E-mail: ${state.customerEmail}\n`
+    : "";
+
   const confirmText =
     `📋 *Подтверждение заказа*\n\n` +
     `🗺 Регион: ${state.regionName}\n` +
     `🏭 Производитель: ${state.manufacturerName}\n` +
     `📦 Коллекция: ${state.collectionName}\n` +
     `🎨 Декор: ${state.decorName}\n` +
-    `👤 Клиент: ${state.customerName}\n` +
-    `📞 Контакт: ${state.customerContact}\n` +
     fileLine +
+    `\n👤 Клиент: ${state.customerName}\n` +
+    `📞 Телефон: ${state.customerContact}\n` +
+    emailLine +
     `\n*Позиции:*\n${itemsText}\n` +
     `📐 Общая площадь: ${totalArea} м²\n` +
     `💰 Стоимость фасадов: ${totalFacadesCost} ₽\n` +
@@ -531,6 +554,7 @@ async function createAndSendOrder(chatId: number, userId: string, state: BotStat
     decorId: state.decorId,
     customerName: state.customerName!,
     customerContact: state.customerContact!,
+    customerEmail: state.customerEmail ?? null,
     totalArea: String(totalArea),
     totalFacadesCost: String(totalFacadesCost),
     totalHolesCost: String(totalHolesCost),
@@ -623,6 +647,7 @@ async function createAndSendOrder(chatId: number, userId: string, state: BotStat
       orderId: order.id,
       customerName: state.customerName!,
       customerContact: state.customerContact!,
+      customerEmail: state.customerEmail ?? null,
       regionName: region.name,
       manufacturerName: manufacturer?.name ?? "—",
       collectionName: collection?.name ?? "—",
