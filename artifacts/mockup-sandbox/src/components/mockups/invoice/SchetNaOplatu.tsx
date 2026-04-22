@@ -1,5 +1,7 @@
 export function SchetNaOplatu() {
   const PRICE_PER_SQM = 12500;
+  const PRICE_PER_HOLE = 90;
+  const PRICE_PACKAGING_PER_SQM = 350;
 
   const invoice = {
     number: "СЧ-2025-42",
@@ -18,13 +20,10 @@ export function SchetNaOplatu() {
       account: "40702810938000012345",
       corrAccount: "30101810400000000225",
     },
-    customer: {
-      name: "Иванов Иван Иванович",
-      contact: "+7 (916) 987-65-43",
-    },
+    customer: { name: "Иванов Иван Иванович", contact: "+7 (916) 987-65-43" },
   };
 
-  // Фасады в заказе — каждый становится отдельной строкой счёта
+  // Фасады — каждый станет отдельной строкой счёта
   const facades = [
     { height: 716, width: 396, qty: 2, holes: 4 },
     { height: 716, width: 596, qty: 4, holes: 8 },
@@ -32,35 +31,38 @@ export function SchetNaOplatu() {
     { height: 496, width: 296, qty: 3, holes: 6 },
   ];
 
-  // Расчёт позиций фасадов
+  // Рассчитываем каждую позицию фасада
   const facadeItems = facades.map((f, i) => {
-    const area = parseFloat(((f.height / 1000) * (f.width / 1000)).toFixed(4));
-    const totalArea = parseFloat((area * f.qty).toFixed(4));
-    const total = Math.round(totalArea * PRICE_PER_SQM * 100) / 100;
-    return { n: i + 1, ...f, area, totalArea, total };
+    const areaPerPiece = parseFloat(((f.height / 1000) * (f.width / 1000)).toFixed(4));
+    const totalArea    = Math.round(areaPerPiece * f.qty * 10000) / 10000;
+    const total        = Math.round(totalArea * PRICE_PER_SQM * 100) / 100;
+    return { n: i + 1, ...f, areaPerPiece, totalArea, total };
   });
 
-  const totalFacades = facadeItems.reduce((s, i) => s + i.total, 0);
-  const totalHoles = 3_600;
-  const totalPacking = 1_200;
-  const grandTotal = totalFacades + totalHoles + totalPacking;
+  // Итого по фасадам
+  const sumFacades   = facadeItems.reduce((s, i) => s + i.total, 0);
+  const totalArea    = Math.round(facadeItems.reduce((s, i) => s + i.totalArea, 0) * 10000) / 10000;
 
-  // Дополнительные позиции (присадка, упаковка)
-  const extraItems = [
-    { n: facadeItems.length + 1, name: "Работа по присадке (сверление отверстий под петли)", qty: 1, unit: "компл.", price: totalHoles, total: totalHoles },
-    { n: facadeItems.length + 2, name: "Упаковка", qty: 1, unit: "компл.", price: totalPacking, total: totalPacking },
-  ];
+  // Присадка: суммарное кол-во отверстий = Σ(holes × qty)
+  const totalHoles   = facadeItems.reduce((s, i) => s + i.holes * i.qty, 0);
+  const sumHoles     = Math.round(totalHoles * PRICE_PER_HOLE * 100) / 100;
+
+  // Упаковка: суммарный м² фасадов × цена за м²
+  const sumPacking   = Math.round(totalArea * PRICE_PACKAGING_PER_SQM * 100) / 100;
+
+  const grandTotal   = sumFacades + sumHoles + sumPacking;
+  const allCount     = facadeItems.length + 2; // + присадка + упаковка
 
   const fmt = (n: number) =>
     n.toLocaleString("ru-RU", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  const fmtArea = (n: number) =>
+  const fmtA = (n: number) =>
     n.toLocaleString("ru-RU", { minimumFractionDigits: 4, maximumFractionDigits: 4 });
 
   return (
     <div className="min-h-screen bg-gray-100 flex items-start justify-center py-8 px-4">
-      <div className="w-full max-w-[820px] bg-white shadow-lg">
+      <div className="w-full max-w-[840px] bg-white shadow-lg">
 
-        {/* ── Банковские реквизиты (шапка) ──────────────── */}
+        {/* ── Банковские реквизиты ───────────────────────── */}
         <div className="border-2 border-gray-800 p-3">
           <table className="w-full text-[11px]">
             <tbody>
@@ -76,7 +78,7 @@ export function SchetNaOplatu() {
                   </div>
                   <div className="flex justify-between gap-2 mt-0.5">
                     <span className="text-gray-500 shrink-0">Корр. сч. №</span>
-                    <span className="font-mono font-bold tracking-wider text-[10px]">{invoice.bank.corrAccount}</span>
+                    <span className="font-mono font-bold text-[10px]">{invoice.bank.corrAccount}</span>
                   </div>
                 </td>
               </tr>
@@ -91,7 +93,7 @@ export function SchetNaOplatu() {
                 <td className="pl-3 align-top pt-1">
                   <div className="flex justify-between gap-2">
                     <span className="text-gray-500 shrink-0">Расч. сч. №</span>
-                    <span className="font-mono font-bold tracking-wider text-[10px]">{invoice.bank.account}</span>
+                    <span className="font-mono font-bold text-[10px]">{invoice.bank.account}</span>
                   </div>
                 </td>
               </tr>
@@ -108,7 +110,7 @@ export function SchetNaOplatu() {
           <div className="h-[1px] bg-gray-900 mt-[3px]" />
         </div>
 
-        {/* ── Поставщик / Покупатель ─────────────────────── */}
+        {/* ── Стороны ────────────────────────────────────── */}
         <div className="px-4 pt-3 pb-3 text-[11px] space-y-1.5">
           <div className="flex gap-1">
             <span className="text-gray-500 w-24 shrink-0">Поставщик:</span>
@@ -118,8 +120,8 @@ export function SchetNaOplatu() {
             </span>
           </div>
           <div className="flex gap-1">
-            <span className="text-gray-500 w-24 shrink-0"></span>
-            <span className="text-gray-600">{invoice.supplier.phone}&nbsp;&nbsp;&nbsp;{invoice.supplier.email}</span>
+            <span className="text-gray-500 w-24 shrink-0" />
+            <span className="text-gray-600">{invoice.supplier.phone}&nbsp;&nbsp;{invoice.supplier.email}</span>
           </div>
           <div className="flex gap-1 mt-1">
             <span className="text-gray-500 w-24 shrink-0">Покупатель:</span>
@@ -131,38 +133,37 @@ export function SchetNaOplatu() {
           </div>
         </div>
 
-        {/* ── Таблица позиций ────────────────────────────── */}
+        {/* ── Таблица ────────────────────────────────────── */}
         <div className="px-4 pb-0">
           <table className="w-full border-collapse text-[10.5px]">
             <thead>
               <tr className="bg-gray-100">
-                <th className="border border-gray-400 px-1.5 py-1.5 text-center w-7 font-semibold text-gray-700 whitespace-nowrap">№</th>
+                <th className="border border-gray-400 px-1.5 py-1.5 text-center w-7 font-semibold text-gray-700">№</th>
                 <th className="border border-gray-400 px-2 py-1.5 text-left font-semibold text-gray-700">Наименование товара / услуги</th>
-                <th className="border border-gray-400 px-2 py-1.5 text-center font-semibold text-gray-700 whitespace-nowrap w-20">Площадь, м²</th>
-                <th className="border border-gray-400 px-1.5 py-1.5 text-center w-10 font-semibold text-gray-700">Ед.</th>
-                <th className="border border-gray-400 px-2 py-1.5 text-right font-semibold text-gray-700 whitespace-nowrap w-24">Цена за м², ₽</th>
-                <th className="border border-gray-400 px-2 py-1.5 text-right font-semibold text-gray-700 whitespace-nowrap w-24">Сумма, ₽</th>
+                <th className="border border-gray-400 px-2 py-1.5 text-right w-[90px] font-semibold text-gray-700">Кол-во</th>
+                <th className="border border-gray-400 px-1.5 py-1.5 text-center w-12 font-semibold text-gray-700">Ед.</th>
+                <th className="border border-gray-400 px-2 py-1.5 text-right w-[100px] font-semibold text-gray-700">Цена, ₽</th>
+                <th className="border border-gray-400 px-2 py-1.5 text-right w-[100px] font-semibold text-gray-700">Сумма, ₽</th>
               </tr>
             </thead>
             <tbody>
-              {/* Фасады — каждый отдельной строкой с размерами */}
+
+              {/* ─ Фасады ─ */}
               {facadeItems.map((item) => (
                 <tr key={item.n} className="even:bg-gray-50/40">
                   <td className="border border-gray-300 px-1.5 py-2 text-center text-gray-400">{item.n}</td>
                   <td className="border border-gray-300 px-2 py-2">
                     <div className="font-medium">Фасад МДФ Kronospan / Trend / Дуб Сонома</div>
-                    <div className="text-gray-500 mt-0.5">
-                      <span className="inline-flex items-center gap-1">
-                        <span className="font-mono text-gray-700 font-semibold">{item.height}×{item.width} мм</span>
-                        <span className="text-gray-400">·</span>
-                        <span>{item.qty} шт.</span>
-                        <span className="text-gray-400">·</span>
-                        <span>{item.area.toFixed(4).replace(".", ",")} м² за шт.</span>
-                      </span>
+                    <div className="text-gray-500 text-[9.5px] mt-0.5 flex items-center gap-1.5">
+                      <span className="font-mono font-semibold text-gray-700">{item.height}×{item.width} мм</span>
+                      <span className="text-gray-300">·</span>
+                      <span>{item.qty} шт.</span>
+                      <span className="text-gray-300">·</span>
+                      <span>{item.areaPerPiece.toFixed(4).replace(".", ",")} м² / шт.</span>
                     </div>
                   </td>
-                  <td className="border border-gray-300 px-2 py-2 text-center font-mono font-semibold">
-                    {fmtArea(item.totalArea)}
+                  <td className="border border-gray-300 px-2 py-2 text-right font-mono font-semibold">
+                    {fmtA(item.totalArea)}
                   </td>
                   <td className="border border-gray-300 px-1.5 py-2 text-center text-gray-500">м²</td>
                   <td className="border border-gray-300 px-2 py-2 text-right font-mono">
@@ -174,21 +175,52 @@ export function SchetNaOplatu() {
                 </tr>
               ))}
 
-              {/* Присадка */}
-              {extraItems.map((item) => (
-                <tr key={item.n} className="bg-blue-50/30">
-                  <td className="border border-gray-300 px-1.5 py-2 text-center text-gray-400">{item.n}</td>
-                  <td className="border border-gray-300 px-2 py-2 text-gray-700">{item.name}</td>
-                  <td className="border border-gray-300 px-2 py-2 text-center text-gray-500">{item.qty}</td>
-                  <td className="border border-gray-300 px-1.5 py-2 text-center text-gray-500">{item.unit}</td>
-                  <td className="border border-gray-300 px-2 py-2 text-right font-mono text-gray-600">
-                    {fmt(item.price)}
-                  </td>
-                  <td className="border border-gray-300 px-2 py-2 text-right font-mono font-semibold">
-                    {fmt(item.total)}
-                  </td>
-                </tr>
-              ))}
+              {/* ─ Присадка: кол-во отверстий × цена за отверстие ─ */}
+              <tr className="bg-amber-50/40">
+                <td className="border border-gray-300 px-1.5 py-2 text-center text-gray-400">
+                  {facadeItems.length + 1}
+                </td>
+                <td className="border border-gray-300 px-2 py-2">
+                  <div className="font-medium text-gray-800">Работа по присадке (сверление отверстий под петли)</div>
+                  <div className="text-gray-500 text-[9.5px] mt-0.5">
+                    По фасадам: {facades.map(f => `${f.holes} отв. × ${f.qty} шт.`).join(" + ")} = {totalHoles} отв. итого
+                  </div>
+                </td>
+                <td className="border border-gray-300 px-2 py-2 text-right font-mono font-semibold">
+                  {totalHoles}
+                </td>
+                <td className="border border-gray-300 px-1.5 py-2 text-center text-gray-500">отв.</td>
+                <td className="border border-gray-300 px-2 py-2 text-right font-mono">
+                  {fmt(PRICE_PER_HOLE)}
+                </td>
+                <td className="border border-gray-300 px-2 py-2 text-right font-mono font-semibold">
+                  {fmt(sumHoles)}
+                </td>
+              </tr>
+
+              {/* ─ Упаковка: суммарный м² фасадов × цена за м² ─ */}
+              <tr className="bg-blue-50/30">
+                <td className="border border-gray-300 px-1.5 py-2 text-center text-gray-400">
+                  {facadeItems.length + 2}
+                </td>
+                <td className="border border-gray-300 px-2 py-2">
+                  <div className="font-medium text-gray-800">Упаковка</div>
+                  <div className="text-gray-500 text-[9.5px] mt-0.5">
+                    Суммарная площадь фасадов: {fmtA(totalArea)} м²
+                  </div>
+                </td>
+                <td className="border border-gray-300 px-2 py-2 text-right font-mono font-semibold">
+                  {fmtA(totalArea)}
+                </td>
+                <td className="border border-gray-300 px-1.5 py-2 text-center text-gray-500">м²</td>
+                <td className="border border-gray-300 px-2 py-2 text-right font-mono">
+                  {fmt(PRICE_PACKAGING_PER_SQM)}
+                </td>
+                <td className="border border-gray-300 px-2 py-2 text-right font-mono font-semibold">
+                  {fmt(sumPacking)}
+                </td>
+              </tr>
+
             </tbody>
           </table>
         </div>
@@ -201,13 +233,13 @@ export function SchetNaOplatu() {
                 <td className="border-l border-r border-gray-300 px-2 py-1.5 text-left text-gray-400 italic">
                   Без налога (НДС)
                 </td>
-                <td className="border border-gray-300 px-2 py-1.5 text-right w-24 text-gray-400 italic">—</td>
+                <td className="border border-gray-300 px-2 py-1.5 text-right w-[100px] text-gray-400 italic">—</td>
               </tr>
               <tr>
                 <td className="border border-gray-400 px-2 py-2 text-right font-bold text-[12px] bg-gray-50">
                   ИТОГО:
                 </td>
-                <td className="border border-gray-400 px-2 py-2 text-right font-bold font-mono text-[13px] text-gray-900 w-24 bg-gray-50">
+                <td className="border border-gray-400 px-2 py-2 text-right font-bold font-mono text-[13px] text-gray-900 w-[100px] bg-gray-50">
                   {fmt(grandTotal)} ₽
                 </td>
               </tr>
@@ -218,14 +250,10 @@ export function SchetNaOplatu() {
         {/* ── Сумма прописью ─────────────────────────────── */}
         <div className="px-4 pb-4 text-[10.5px]">
           <div className="bg-gray-50 border border-gray-200 px-3 py-2">
-            <span className="text-gray-500">
-              Итого {facadeItems.length + extraItems.length} наименования, на сумму{" "}
-            </span>
+            <span className="text-gray-500">Итого {allCount} наименования, на сумму </span>
             <span className="font-bold">{fmt(grandTotal)} руб.</span>
             <br />
-            <span className="text-gray-500 italic">
-              {grandTotal.toLocaleString("ru-RU")} рублей 00 копеек. Без НДС.
-            </span>
+            <span className="text-gray-500 italic">{grandTotal.toLocaleString("ru-RU")} рублей 00 копеек. Без НДС.</span>
           </div>
         </div>
 

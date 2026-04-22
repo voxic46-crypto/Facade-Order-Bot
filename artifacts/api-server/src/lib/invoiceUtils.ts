@@ -38,6 +38,8 @@ export function generateInvoiceExcel(opts: {
   collectionName: string;
   manufacturerName: string;
   pricePerSqm: number;
+  pricePerHole: number;
+  pricePackagingPerSqm: number;
   items: Array<{
     rowNumber: number;
     height: number;
@@ -49,6 +51,7 @@ export function generateInvoiceExcel(opts: {
     holesCost: number;
     packagingCost: number;
   }>;
+  totalArea: number;
   totalFacadesCost: number;
   totalHolesCost: number;
   totalPackagingCost: number;
@@ -59,43 +62,45 @@ export function generateInvoiceExcel(opts: {
   const dateStr = opts.invoiceDate.toLocaleDateString("ru-RU");
   const decorLabel = `МДФ ${opts.manufacturerName} / ${opts.collectionName} / ${opts.decorName}`;
 
+  // Суммарное количество отверстий по всем позициям
+  const totalHolesCount = opts.items.reduce((sum, it) => sum + it.holes * it.quantity, 0);
+
   // Формируем строки позиций счёта
   const invoiceItems: InvoiceItem[] = [];
   let rowNum = 1;
 
   // Каждый фасад — отдельная строка: размер, площадь, цена за м², сумма
   for (const item of opts.items) {
-    const areaTotal = Math.round(item.area * item.quantity * 10000) / 10000;
     invoiceItems.push({
       rowNumber: rowNum++,
       name: `Фасад ${decorLabel}: ${item.height}×${item.width} мм, ${item.quantity} шт.`,
-      quantity: areaTotal,
+      quantity: item.area,
       unit: "м²",
       price: opts.pricePerSqm,
       total: item.facadesCost,
     });
   }
 
-  // Присадка (отверстия)
+  // Присадка — кол-во отверстий, цена за отверстие, сумма
   if (opts.totalHolesCost > 0) {
     invoiceItems.push({
       rowNumber: rowNum++,
       name: "Работа по присадке (сверление отверстий под петли)",
-      quantity: 1,
-      unit: "компл.",
-      price: opts.totalHolesCost,
+      quantity: totalHolesCount,
+      unit: "отв.",
+      price: opts.pricePerHole,
       total: opts.totalHolesCost,
     });
   }
 
-  // Упаковка
+  // Упаковка — суммарный м² фасадов, цена за м², сумма
   if (opts.totalPackagingCost > 0) {
     invoiceItems.push({
       rowNumber: rowNum++,
       name: "Упаковка",
-      quantity: 1,
-      unit: "компл.",
-      price: opts.totalPackagingCost,
+      quantity: opts.totalArea,
+      unit: "м²",
+      price: opts.pricePackagingPerSqm,
       total: opts.totalPackagingCost,
     });
   }

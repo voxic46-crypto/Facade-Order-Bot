@@ -73,6 +73,8 @@ router.get("/orders/:id/invoice", async (req, res): Promise<void> => {
     .where(eq(pricesTable.decorId, order.decorId))
     .limit(1);
   const pricePerSqm = priceRow ? parseFloat(priceRow.pricePerSqm) : 0;
+  const pricePerHole = priceRow ? parseFloat(priceRow.pricePerHole) : 0;
+  const pricePackagingPerSqm = priceRow ? parseFloat(priceRow.pricePackagingPerSqm) : 0;
 
   const settingsRows = await db.select().from(invoiceSettingsTable).limit(1);
   const settings: InvoiceSettingsData = settingsRows[0] ?? {
@@ -94,6 +96,7 @@ router.get("/orders/:id/invoice", async (req, res): Promise<void> => {
     holesCost: parseFloat(it.holesCost),
     packagingCost: parseFloat(it.packagingCost),
   }));
+  const totalArea = Math.round(calculatedItems.reduce((s, it) => s + it.area, 0) * 10000) / 10000;
 
   const excelBuffer = generateInvoiceExcel({
     invoiceNumber,
@@ -105,7 +108,10 @@ router.get("/orders/:id/invoice", async (req, res): Promise<void> => {
     collectionName: collection?.name ?? "—",
     manufacturerName: manufacturer?.name ?? "—",
     pricePerSqm,
+    pricePerHole,
+    pricePackagingPerSqm,
     items: calculatedItems,
+    totalArea,
     totalFacadesCost: parseFloat(order.totalFacadesCost),
     totalHolesCost: parseFloat(order.totalHolesCost),
     totalPackagingCost: parseFloat(order.totalPackagingCost),
