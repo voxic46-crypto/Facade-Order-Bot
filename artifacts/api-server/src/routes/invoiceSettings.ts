@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { db, invoiceSettingsTable, ordersTable, orderItemsTable, decorsTable, collectionsTable, manufacturersTable, regionsTable } from "@workspace/db";
+import { db, invoiceSettingsTable, ordersTable, orderItemsTable, decorsTable, collectionsTable, manufacturersTable, regionsTable, pricesTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { buildInvoiceNumber, generateInvoiceExcel, type InvoiceSettingsData } from "../lib/invoiceUtils";
 
@@ -69,6 +69,10 @@ router.get("/orders/:id/invoice", async (req, res): Promise<void> => {
   const [decor] = await db.select().from(decorsTable).where(eq(decorsTable.id, order.decorId));
   const [collection] = decor ? await db.select().from(collectionsTable).where(eq(collectionsTable.id, decor.collectionId)) : [null];
   const [manufacturer] = collection ? await db.select().from(manufacturersTable).where(eq(manufacturersTable.id, collection.manufacturerId)) : [null];
+  const [priceRow] = await db.select().from(pricesTable)
+    .where(eq(pricesTable.decorId, order.decorId))
+    .limit(1);
+  const pricePerSqm = priceRow ? parseFloat(priceRow.pricePerSqm) : 0;
 
   const settingsRows = await db.select().from(invoiceSettingsTable).limit(1);
   const settings: InvoiceSettingsData = settingsRows[0] ?? {
@@ -100,6 +104,7 @@ router.get("/orders/:id/invoice", async (req, res): Promise<void> => {
     decorName: decor?.name ?? "—",
     collectionName: collection?.name ?? "—",
     manufacturerName: manufacturer?.name ?? "—",
+    pricePerSqm,
     items: calculatedItems,
     totalFacadesCost: parseFloat(order.totalFacadesCost),
     totalHolesCost: parseFloat(order.totalHolesCost),

@@ -589,6 +589,7 @@ async function createAndSendOrder(chatId: number, userId: string, state: BotStat
     decorName: decor?.name ?? "—",
     collectionName: collection?.name ?? "—",
     manufacturerName: manufacturer?.name ?? "—",
+    pricePerSqm: state.pricePerSqm ?? 0,
     items: calculated,
     totalFacadesCost,
     totalHolesCost,

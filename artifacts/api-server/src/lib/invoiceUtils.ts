@@ -37,6 +37,7 @@ export function generateInvoiceExcel(opts: {
   decorName: string;
   collectionName: string;
   manufacturerName: string;
+  pricePerSqm: number;
   items: Array<{
     rowNumber: number;
     height: number;
@@ -56,20 +57,22 @@ export function generateInvoiceExcel(opts: {
   const wb = XLSX.utils.book_new();
   const s = opts.settings;
   const dateStr = opts.invoiceDate.toLocaleDateString("ru-RU");
+  const decorLabel = `МДФ ${opts.manufacturerName} / ${opts.collectionName} / ${opts.decorName}`;
 
   // Формируем строки позиций счёта
   const invoiceItems: InvoiceItem[] = [];
   let rowNum = 1;
 
-  // Фасады
-  if (opts.totalFacadesCost > 0) {
+  // Каждый фасад — отдельная строка: размер, площадь, цена за м², сумма
+  for (const item of opts.items) {
+    const areaTotal = Math.round(item.area * item.quantity * 10000) / 10000;
     invoiceItems.push({
       rowNumber: rowNum++,
-      name: `Фасады МДФ ${opts.manufacturerName} / ${opts.collectionName} / ${opts.decorName}`,
-      quantity: 1,
-      unit: "компл.",
-      price: opts.totalFacadesCost,
-      total: opts.totalFacadesCost,
+      name: `Фасад ${decorLabel}: ${item.height}×${item.width} мм, ${item.quantity} шт.`,
+      quantity: areaTotal,
+      unit: "м²",
+      price: opts.pricePerSqm,
+      total: item.facadesCost,
     });
   }
 
@@ -117,8 +120,8 @@ export function generateInvoiceExcel(opts: {
     ["Покупатель:", customerName(opts.customerName)],
     ["Контакт:", opts.customerContact],
     [],
-    // Таблица
-    ["№", "Наименование товара / услуги", "Кол-во", "Ед.", "Цена (₽)", "Сумма (₽)"],
+    // Таблица — колонки с площадью и ценой за м²
+    ["№", "Наименование товара / услуги", "Кол-во / площадь", "Ед.", "Цена за ед. (₽)", "Сумма (₽)"],
   ];
 
   for (const item of invoiceItems) {
@@ -139,10 +142,10 @@ export function generateInvoiceExcel(opts: {
 
   ws["!cols"] = [
     { wch: 5 },
-    { wch: 55 },
-    { wch: 10 },
-    { wch: 8 },
-    { wch: 14 },
+    { wch: 60 },
+    { wch: 18 },
+    { wch: 7 },
+    { wch: 18 },
     { wch: 14 },
   ];
 
