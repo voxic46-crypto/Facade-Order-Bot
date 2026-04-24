@@ -18,3 +18,9 @@ id = "j4rDliKp6NJIc6-sbRXmX"
 uri = "file://facadebot_install_guide.pdf"
 type = "pdf"
 title = "FacadeBot — Полное руководство по установке"
+
+[[outputs]]
+id = "CnXV9S94Mx8R-nJ3C-lL2"
+uri = "file://facadebot_install_guide.docx"
+type = "word_document"
+title = "FacadeBot — Полное руководство по установке"
