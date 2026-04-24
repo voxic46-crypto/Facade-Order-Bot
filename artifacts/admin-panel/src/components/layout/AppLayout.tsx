@@ -1,6 +1,8 @@
 import { Link, useLocation } from "wouter";
-import { LayoutDashboard, Map, ListTree, Banknote, Upload, ShoppingCart, Bot, FileText } from "lucide-react";
+import { LayoutDashboard, Map, ListTree, Banknote, Upload, ShoppingCart, Bot, FileText, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/useAuth";
+import { Button } from "@/components/ui/button";
 
 const NAV_ITEMS = [
   { href: "/", label: "Главная", icon: LayoutDashboard },
@@ -15,6 +17,7 @@ const NAV_ITEMS = [
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
+  const { username, logout } = useAuth();
 
   return (
     <div className="flex min-h-screen bg-gray-100">
@@ -45,16 +48,25 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             );
           })}
         </nav>
-        <div className="p-4 border-t border-slate-800">
+        <div className="p-4 border-t border-slate-800 space-y-3">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-sm font-bold">
-              АД
+            <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-sm font-bold uppercase">
+              {(username ?? "A").charAt(0)}
             </div>
-            <div className="text-sm">
-              <div className="font-medium">Администратор</div>
-              <div className="text-xs text-slate-400">Система</div>
+            <div className="text-sm flex-1 min-w-0">
+              <div className="font-medium truncate">{username ?? "Администратор"}</div>
+              <div className="text-xs text-slate-400">Панель управления</div>
             </div>
           </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => void logout()}
+            className="w-full justify-start gap-2 text-slate-400 hover:text-white hover:bg-slate-800 px-3"
+          >
+            <LogOut size={15} />
+            Выйти
+          </Button>
         </div>
       </aside>
       <main className="flex-1 flex flex-col h-screen overflow-hidden">

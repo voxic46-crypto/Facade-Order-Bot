@@ -41,6 +41,18 @@ pnpm workspace monorepo using TypeScript. System for managing facade orders via 
 - `order_items` — Individual facade items per order (height, width, quantity, holes)
 - `invoice_settings` — Company/bank requisites for invoice generation
 
+### Admin Panel Authentication
+
+Session-based auth using `express-session` (in-memory store, MemoryStore).
+
+- `POST /api/auth/login` — validates credentials against `ADMIN_USERNAME` / `ADMIN_PASSWORD` env vars, creates session
+- `POST /api/auth/logout` — destroys session
+- `GET /api/auth/me` — returns current auth state
+- All API routes except `/auth/*`, `/healthz`, `/bot/webhook` require a valid session
+- Frontend: `useAuth` hook (context provider in App.tsx), `Login.tsx` page shown when unauthenticated
+- Session cookie: `httpOnly`, `secure: true` in production, 7-day maxAge
+- All API client fetch calls include `credentials: "include"` (custom-fetch.ts)
+
 ### Bot Flow (Telegram)
 region → manufacturer → collection → decor → enter_items → attach_file (optional) → enter_customer_name → enter_customer_phone → enter_customer_email (optional) → confirm → order created
 
@@ -69,6 +81,8 @@ Set in `ecosystem.config.cjs` for PM2:
 | `PORT` | API server port (e.g. `8080`) |
 | `DATABASE_URL` | PostgreSQL connection string |
 | `SESSION_SECRET` | Random string 40+ chars |
+| `ADMIN_USERNAME` | Admin panel login (default: `admin`) |
+| `ADMIN_PASSWORD` | Admin panel password (default: `admin`) |
 | `TELEGRAM_BOT_TOKEN` | Token from @BotFather |
 | `TELEGRAM_WEBHOOK_SECRET` | Any string for webhook security |
 | `SMTP_HOST` | SMTP server host |
