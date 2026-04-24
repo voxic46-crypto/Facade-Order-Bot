@@ -46,7 +46,7 @@ async function sendDocumentBuffer(chatId: number, buffer: Buffer, filename: stri
   try {
     const form = new FormData();
     form.append("chat_id", String(chatId));
-    form.append("document", new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }), filename);
+    form.append("document", new Blob([new Uint8Array(buffer)], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }), filename);
     if (caption) form.append("caption", caption);
     const resp = await fetch(`${TG_API()}/sendDocument`, { method: "POST", body: form });
     if (!resp.ok) {

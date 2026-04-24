@@ -49,4 +49,7 @@ Thumbs.db
 .local/
 .env
 *.log
-EOV
+
+# Generated PDF/DOCX guides (deploy separately)
+*.pdf
+*.docx

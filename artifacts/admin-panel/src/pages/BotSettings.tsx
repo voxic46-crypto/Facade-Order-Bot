@@ -148,13 +148,13 @@ export default function BotSettings() {
                   <span className="text-muted-foreground w-40">Ожидающих обновлений:</span>
                   <span className="font-medium">{String(info.pending_update_count ?? 0)}</span>
                 </div>
-                {info.last_error_message && (
+                {!!info.last_error_message && (
                   <div className="flex gap-3">
                     <span className="text-muted-foreground w-40">Последняя ошибка:</span>
                     <span className="font-medium text-destructive">{String(info.last_error_message)}</span>
                   </div>
                 )}
-                {info.url && !info.last_error_message && (
+                {!!info.url && !info.last_error_message && (
                   <Alert className="mt-2">
                     <CheckCircle className="h-4 w-4" />
                     <AlertTitle>Бот подключён</AlertTitle>
