@@ -42,6 +42,9 @@ if (!sessionSecret) {
   throw new Error("SESSION_SECRET environment variable is required");
 }
 
+// trust proxy — необходимо когда за Nginx/reverse-proxy
+app.set("trust proxy", 1);
+
 app.use(
   session({
     secret: sessionSecret,
@@ -49,8 +52,9 @@ app.use(
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production" ? "lax" : "lax",
+      // COOKIE_SECURE=true устанавливайте только при наличии HTTPS
+      secure: process.env.COOKIE_SECURE === "true",
+      sameSite: "lax",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     },
   }),

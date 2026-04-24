@@ -83,6 +83,7 @@ Set in `ecosystem.config.cjs` for PM2:
 | `SESSION_SECRET` | Random string 40+ chars |
 | `ADMIN_USERNAME` | Admin panel login (default: `admin`) |
 | `ADMIN_PASSWORD` | Admin panel password (default: `admin`) |
+| `COOKIE_SECURE` | Set `true` only when HTTPS is configured; omit/`false` for HTTP |
 | `TELEGRAM_BOT_TOKEN` | Token from @BotFather |
 | `TELEGRAM_WEBHOOK_SECRET` | Any string for webhook security |
 | `SMTP_HOST` | SMTP server host |
