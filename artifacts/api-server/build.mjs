@@ -3,7 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { build as esbuild } from "esbuild";
 import esbuildPluginPino from "esbuild-plugin-pino";
-import { rm } from "node:fs/promises";
+import { rm, cp } from "node:fs/promises";
 
 // Plugins (e.g. 'esbuild-plugin-pino') may use `require` to resolve dependencies
 globalThis.require = createRequire(import.meta.url);
@@ -49,6 +49,7 @@ async function buildAll() {
       "pg-native",
       "oracledb",
       "mongodb-client-encryption",
+      "exceljs",
       "nodemailer",
       "handlebars",
       "knex",
@@ -120,7 +121,17 @@ globalThis.__dirname = __bannerPath.dirname(globalThis.__filename);
   });
 }
 
-buildAll().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+async function copyAssets() {
+  const src = path.resolve(artifactDir, "assets");
+  const dest = path.resolve(artifactDir, "dist", "assets");
+  await cp(src, dest, { recursive: true, force: true }).catch(() => {
+    // assets dir may not exist — skip silently
+  });
+}
+
+buildAll()
+  .then(() => copyAssets())
+  .catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });

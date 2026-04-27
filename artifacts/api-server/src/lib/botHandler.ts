@@ -604,7 +604,7 @@ async function createAndSendOrder(chatId: number, userId: string, state: BotStat
   await sendDocumentBuffer(chatId, excelBuffer, `order_${order.id}.xlsx`, `📎 Бланк заказа #${order.id}`);
 
   // Генерируем счёт и отправляем клиенту
-  const invoiceExcelBuffer = generateInvoiceExcel({
+  const invoiceExcelBuffer = await generateInvoiceExcel({
     invoiceNumber,
     invoiceDate: order.createdAt,
     settings,
